@@ -20,10 +20,16 @@ ui<- fluidPage(
                    radioButtons('categories', label=h3("Select Data Feature"),
                                 choices = list('age','sex','variant','pregnant','quarantineExtended','reInfection',
                                                'condition','symptoms.symptomatic', 'vaccination','vaccinationcomplete','vaccineManufacturer'),
-                                selected = 'age')
+                                selected = 'age'),
+                   
+                   checkboxGroupInput("ages", label=h3("Reports by age over time"),
+                                choices = list('0-4','5-9','10-14','15-19','20-24','25-29','30-34','35-39','40-44','45-49','50-54',
+                                               '55-59','60-64','65-69','70-74','75-79','80-84','85-89','90-94','95-99','100-104'),
+                                selected = '0-4')
                  ),
                  mainPanel(
-                   plotOutput('cattable')
+                   plotOutput('cattable'),
+                   plotOutput('agetime')
                  )
                )
       ),
@@ -109,11 +115,17 @@ ui<- fluidPage(
 server <- function(input, output) {
     #Load in data as a dataframe called CalwData
     load('../CalwData.RData')
+    #Convert reportDate from string to actual date factor
+    CalwData$reportDate <- as.Date(CalwData$reportDate, "%Y-%m-%d")
     
     #### Tab "Data Summary"
     output$cattable <- renderPlot({
       x <- as.data.frame(table(CalwData[[input$categories]]))
       ggplot(x, aes(x=Var1, y=Freq)) + geom_bar(stat='identity')
+    })
+    
+    output$agetime <- renderPlot({
+      ggplot(CalwData[CalwData$age %in% input$ages,], aes(reportDate, fill = age))+geom_histogram() + scale_x_date()
     })
     ####
     
