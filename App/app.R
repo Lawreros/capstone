@@ -18,8 +18,8 @@ ui<- fluidPage(
                sidebarLayout(
                  sidebarPanel(
                    radioButtons('categories', label=h3("Select Data Feature"),
-                                choices = list('age','sex','variant','pregnant','quarantineExtended','reInfection',
-                                               'condition','symptoms.symptomatic', 'vaccination','vaccinationcomplete','vaccineManufacturer'),
+                                choices = list('age','sex','variant','pregnant','quarantineExtended','reInfection','traveled','contactSourceCase',
+                                               'condition','sampleResult1','sampleResult2','symptoms.symptomatic', 'vaccination','vaccinationcomplete','vaccineManufacturer'),
                                 selected = 'age'),
                    
                    checkboxGroupInput("ages", label=h3("Reports by age over time"),
@@ -119,14 +119,18 @@ server <- function(input, output) {
     CalwData$reportDate <- as.Date(CalwData$reportDate, "%Y-%m-%d")
     
     #### Tab "Data Summary"
+    
+    #Plot the number of times different entries for categories appear in the data (for seeing what has enough entries to bother with)
     output$cattable <- renderPlot({
       x <- as.data.frame(table(CalwData[[input$categories]]))
       ggplot(x, aes(x=Var1, y=Freq)) + geom_bar(stat='identity')
     })
     
+    #Plot the number of reports for each age each day
     output$agetime <- renderPlot({
-      ggplot(CalwData[CalwData$age %in% input$ages,], aes(reportDate, fill = age))+geom_histogram() + scale_x_date()
+      ggplot(CalwData[CalwData$age %in% input$ages,], aes(reportDate, fill = age))+geom_histogram(bins=70) + scale_x_date()
     })
+    
     ####
     
     #### Tab B
