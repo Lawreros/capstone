@@ -118,6 +118,8 @@ server <- function(input, output) {
     #Convert reportDate from string to actual date factor
     CalwData$reportDate <- as.Date(CalwData$reportDate, "%Y-%m-%d")
     
+    
+    
     #### Tab "Data Summary"
     
     #Plot the number of times different entries for categories appear in the data (for seeing what has enough entries to bother with)
@@ -132,6 +134,8 @@ server <- function(input, output) {
     })
     
     ####
+    
+    
     
     #### Tab B
     
