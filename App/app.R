@@ -137,7 +137,11 @@ server <- function(input, output) {
     
     
     
-    #### Tab B
+    #### Symptom composition based on variant
+    # Make a decision tree of sorts, where each node has the percentage of individuals with a given symptom combination
+    # http://www.milbo.org/rpart-plot/prp.pdf
+    
+    
     
     ####
     
