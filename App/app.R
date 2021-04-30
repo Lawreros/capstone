@@ -11,6 +11,9 @@ library(shiny)
 library(plotly)
 library(ggplot2)
 library(dplyr)
+library(sjPlot)
+library(sjmisc)
+library(sjlabelled)
 
 ui<- fluidPage(
     tabsetPanel(
@@ -60,19 +63,46 @@ ui<- fluidPage(
       
       
       tabPanel("E", fluid = TRUE,
+               headerPanel("Association between Travel Outside District and COVID-19 Variants"),
                sidebarLayout(
-                 sidebarPanel(),
-                 mainPanel()
-               )
+                 sidebarPanel(
+                   h3('COVID-19 Variants Observed:'),
+                   h4('B117'),
+                   h5('Initially detected in UK'),
+                   h4('B1351'),
+                   h5('Initially detected in South Africa'),
+                   h4('noVOC'),
+                   h5('Variant of no concern')),
+                 mainPanel(h2("Association Results"),
+                           h3('Chi-Square Test:'),
+                           h4('A chi-square test indicates no significant association between COVID-19 variant and travel history (p=0.942)'),
+                 textOutput('chisq'),
+                 h3('Data Frequency Table:'),
+                 tableOutput('varianttraveltab'),
+                 h3('Mosaic Plot:'),
+                 plotOutput('varianttravelmosaic')
+                 ))
+               
       ),
       
       
       tabPanel("F", fluid = TRUE,
                sidebarLayout(
-                 sidebarPanel(),
-                 mainPanel()
-               )
-      ),
+                 sidebarPanel(
+                   radioButtons('sex', label=h3("Select Sex"),
+                                c('female' = 'female','male'= 'male'),
+                                selected = 'female'),
+                   
+                   radioButtons("age", label=h3("Select Age"),
+                                choices = list('0-19','20-39','40-59','60-79','80+'),
+                                selected = '0-19')
+                   ),
+                 mainPanel(h2('Odds of Death Given Sex and Age'),
+                           htmlOutput('logvar'),
+                           textOutput(predict)
+                           )
+                 
+      )),
       
       
       tabPanel("G", fluid = TRUE,
@@ -105,10 +135,10 @@ ui<- fluidPage(
                  mainPanel()
                )
       )
-  )
-)
+  
+  ))
 
-
+  
 
 
 # Define server logic required to draw a histogram
@@ -149,11 +179,75 @@ server <- function(input, output) {
     
     ####
     
-    #### Tab E
+    #### Tab E Association between travel and the variants
+    
+    output$varianttraveltab <- renderTable({
+      as.data.frame.matrix(xtabs(~traveled + variant, data= CalwData))
+    })
+    
+    output$varianttravelmosaic <- renderPlot({
+      mosaic <- table(CalwData$variant, CalwData$traveled)
+      mosaicplot(mosaic, main = "COVID-19 Variants by Travel History Mosaic Plot",
+                 xlab = "COVID-19 Variants",
+                 ylab = "Traveled",
+                 las = 2,
+                 color = "skyblue2")
+    })
+    
+    output$chisq <- renderPrint({
+      tbl <- table(CalwData$variant, CalwData$traveled)
+      results <- chisq.test(tbl)
+      results
+    })
     
     ####
     
     #### Tab F
+    
+    output$logvar <- renderUI({
+      CalwData2 <- CalwData %>%
+        mutate(Age_Cat = ifelse(age == '0-4' | age == '5-9' | age == '10-14' | age == '15-19', 1,
+                                ifelse(age == '20-24' | age == '25-29' | age == '30-34' | age == '35-39', 2,
+                                       ifelse(age == '40-44' | age == '45-49' | age == '50-54' | age == '55-59', 3,
+                                              ifelse(age == '60-64' | age == '65-69' | age == '70-74' | age == '75-79', 4, 5)))))
+      
+      CalwData2$Age_Cat <- factor(CalwData2$Age_Cat,
+                                  levels = c(1,2,3, 4, 5),
+                                  labels = c("0-19", "20-39", "40-59", "60-79", "80+"))
+      
+      mylogit <- glm(condition ~ Age_Cat + sex , data = CalwData2, family = "binomial")
+      #glmresult <- broom::tidy(mylogit, conf.int = TRUE, exponentiate=TRUE)
+      tbl <- HTML(tab_model(mylogit)$knitr)
+      tbl
+      
+    })
+    
+    output$predict <- renderPrint({
+      CalwData2 <- CalwData %>%
+        mutate(Age_Cat = ifelse(age == '0-4' | age == '5-9' | age == '10-14' | age == '15-19', 1,
+                                ifelse(age == '20-24' | age == '25-29' | age == '30-34' | age == '35-39', 2,
+                                       ifelse(age == '40-44' | age == '45-49' | age == '50-54' | age == '55-59', 3,
+                                              ifelse(age == '60-64' | age == '65-69' | age == '70-74' | age == '75-79', 4, 5)))))
+      
+      CalwData2$Age_Cat <- factor(CalwData2$Age_Cat,
+                                  levels = c(1,2,3, 4, 5),
+                                  labels = c("0-19", "20-39", "40-59", "60-79", "80+"))
+      
+      mylogit <- glm(condition ~ Age_Cat + sex , data = CalwData2, family = "binomial")
+      
+      newdata = data.frame()
+      
+      if (input$age == "0-19") {newdata$Age_Cat = 1} else if
+                                      (input$age == "20-39") {newdata$Age_Cat = 2} else if
+                                      (input$age == "40-59") {newdata$Age_Cat = 3} else if 
+                                      (input$age == "60-79") {newdata$Age_Cat = 4}
+                                      else {newdata$Age_Cat = 5}
+    
+      if (input$sex == "female") {newdata$sex = 1} else {newdata$sex = 0}
+      
+      prob <- predict(mylogit, newdata, type="response")
+      prob
+    })
     
     ####
     
