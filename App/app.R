@@ -75,13 +75,52 @@ ui<- fluidPage(
       ),
       
       
-      tabPanel("G", fluid = TRUE,
+      tabPanel("G - Symptoms", fluid = TRUE,
                sidebarLayout(
-                 sidebarPanel(),
-                 mainPanel()
+                 sidebarPanel(
+                   #radioButtons('agegroup', label=h3("Select Age Group Feature"),
+                    #            choices = list('0-4','5-9','10-14','15-19','20-24','25-29','30-34','35-39','40-44','45-49','50-54',
+                     #                          '55-59','60-64','65-69','70-74','75-79','80-84','85-89','90-94','95-99','100-104'),
+                      #          selected = '0-4')
+                 ),
+                 mainPanel(
+                   
+                   
+                   #fluidRow(
+                    # column(6,
+                   #plotlyOutput("pieall")),
+                   #column(6,
+                   #plotlyOutput('piesub')
+                   #)),
+                   #plotlyOutput('bar'),
+                   
+                 )
                )
       ),
       
+      tabPanel("G 2- Symptoms", fluid = TRUE,
+               
+               fluidRow(
+                 h3(textOutput("Symptom Distribution by Age")),
+                 column(4,
+                        plotlyOutput("pieall")
+                 ),
+                 column(2,
+                        radioButtons('agegroup', label=h3("Select Age Group Feature"),
+                                     choices = list('0-4','5-9','10-14','15-19','20-24','25-29','30-34','35-39','40-44','45-49','50-54',
+                                                    '55-59','60-64','65-69','70-74','75-79','80-84','85-89','90-94','95-99','100-104'),
+                                     selected = '0-4',
+                                     width=200
+                                     )
+                 ),
+                 column(4,
+                        plotlyOutput('piesub')
+                 )),
+               fluidRow(
+                 plotlyOutput('bar'),
+               )
+      ),
+
       
       tabPanel("H", fluid = TRUE,
                sidebarLayout(
@@ -114,7 +153,7 @@ ui<- fluidPage(
 # Define server logic required to draw a histogram
 server <- function(input, output) {
     #Load in data as a dataframe called CalwData
-    load('../CalwData.RData')
+    #load('../CalwData.RData')
     #Convert reportDate from string to actual date factor
     CalwData$reportDate <- as.Date(CalwData$reportDate, "%Y-%m-%d")
     
@@ -158,6 +197,89 @@ server <- function(input, output) {
     ####
     
     #### Tab G
+    fix_symptoms=function(x){
+      x%<>%factor(.,levels=c("feelingIll","fever","shivering","chillsSweats","musclePain","headache","difficultyBreathing","cough","soreThroat","runnyNose","nausea","diarrhea","lossOfSmell","lossOfTaste"),
+                  labels=c("feeling ill","fever","shivering","chills sweats","muscle pain","headache","difficulty breathing","cough","sore throat","runny nose","nausea","diarrhea","loss of smell","loss of taste"))
+    }
+    
+    Symptoms= CalwData %>%
+      select(contains("symptoms."))%>%
+      select_if(is.factor)%>%
+      select(-symptoms.symptomatic) %>%
+      gather(symptom, value ) %>%
+      group_by(symptom,value) %>%
+      summarize(n=n())%>%
+      filter(value=="yes")%>%
+      mutate(symptom=str_replace(symptom,"symptoms.","")%>%fix_symptoms)
+    
+    
+    output$pieall <- renderPlotly({
+     plot_ly(Symptoms, labels = ~symptom, values = ~n, type = 'pie',
+                   textposition = 'inside',
+                   textinfo = 'label+percent',
+                   insidetextfont = list(color = '#FFFFFF'),
+                   hoverinfo = 'text',
+                   text = ~paste(n,"cases"),
+                   marker = list(colors = pal_simpsons("springfield")(14),
+                                 line = list(color = '#FFFFFF', width = 1)),
+                   #The 'pull' attribute can also be used to create space between the sectors
+                   showlegend = FALSE)%>%
+                    layout(title = 'Symptoms',
+                    xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
+                    yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE))
+    
+    })
+    
+    output$piesub <- renderPlotly({
+      age_sub=input$agegroup
+      fig_sub = CalwData %>%
+        filter(age==age_sub)%>%
+        select(contains("symptoms."))%>%
+        select_if(is.factor)%>%
+        select(-symptoms.symptomatic) %>%
+        gather(symptom, value ) %>%
+        group_by(symptom,value) %>%
+        summarize(n=n())%>%
+        filter(value=="yes")%>% 
+        mutate(symptom=str_replace(symptom,"symptoms.","")%>%fix_symptoms)%>%
+        plot_ly(labels = ~symptom, values = ~n, type = 'pie',
+                textposition = 'inside',
+                textinfo = 'label+percent',
+                insidetextfont = list(color = '#FFFFFF'),
+                hoverinfo = 'text',
+                text = ~paste(n,"cases"),
+                marker = list(colors = pal_simpsons("springfield")(14),
+                              line = list(color = '#FFFFFF', width = 1)),
+                #The 'pull' attribute can also be used to create space between the sectors
+                showlegend = FALSE) %>% layout(title = paste('Symptoms in age group',age_sub),
+                                               xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
+                                               yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE))
+      fig_sub
+      
+          })
+    output$bar <- renderPlotly({
+      Symptom_distribution_delay=CalwData %>%
+      select(c(testingdelay,contains("symptoms.")))%>%
+      select(-c(symptoms.fever,symptoms.symptomatic)) %>%
+      filter(!is.na(testingdelay))%>%
+      mutate(delay_binned=case_when(
+      testingdelay<0~"before",
+      testingdelay%in%(0:2)~"immediate",
+      testingdelay%in%(3:5)~"early",
+      testingdelay>5~"late")%>%factor(levels = c("before","immediate","early","late")))%>%
+      select(-testingdelay)%>%
+      gather(symptom, value, -delay_binned ) %>%
+      group_by(delay_binned,symptom,value) %>%
+      summarize(n=n())%>%
+      filter(value=="yes")%>%
+      mutate(symptom=str_replace(symptom,"symptoms.","")%>%fix_symptoms)
+    
+      barplot_delay=ggplot(Symptom_distribution_delay, aes(x=delay_binned,y=n))+
+      geom_col(aes(fill=symptom),position ="fill", color="black")+
+      scale_fill_simpsons()
+    
+      ggplotly(barplot_delay)
+    })
     
     ####
     
