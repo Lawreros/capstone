@@ -9,31 +9,90 @@ library(shiny)
 library(plotly)
 library(ggplot2)
 library(dplyr)
+library(rpart)
+library(rpart.plot)
 ```
 
 
 Load in data
 ```{r}
 #Load in data as a dataframe called CalwData
-load('../CalwData.RData')
+load('CalwData.RData')
 #Convert reportDate from string to actual date factor
 CalwData$reportDate <- as.Date(CalwData$reportDate, "%Y-%m-%d")
 ```
 
-Display symptom compositions
+Get table values for the relationship between each symptom
 ```{r}
+summary(CalwData[c('variant','symptoms.symptomatic','symptoms.fever','symptoms.feelingIll','symptoms.shivering','symptoms.chillsSweats','symptoms.musclePain','symptoms.headache','symptoms.cough','symptoms.difficultyBreathing','symptoms.runnyNose','symptoms.diarrhea','symptoms.nausea','symptoms.lossOfTaste','symptoms.lossOfSmell')])
 
 ```
 
 
 ```{r}
+#dat <- CalwData[c('variant','sex','symptoms.symptomatic','symptoms.fever','symptoms.feelingIll','symptoms.shivering','symptoms.chillsSweats','symptoms.musclePain','symptoms.headache','symptoms.cough','symptoms.difficultyBreathing','symptoms.runnyNose','symptoms.diarrhea','symptoms.nausea','symptoms.lossOfTaste','symptoms.lossOfSmell')]
+dat <- CalwData[c('variant','symptoms.symptomatic','symptoms.feelingIll','symptoms.headache','symptoms.difficultyBreathing','symptoms.runnyNose','symptoms.lossOfTaste','symptoms.lossOfSmell')]
+
+# Change NA variants and symptoms to 'unknown'
+#dat$variant[is.na(dat$variant)] <- 'unknown'
+dat[is.na(dat)] <- 'unknown'
+
+# Remove people who are asymptomatic
+dat_symp <- filter(dat, symptoms.symptomatic == 'yes')
+
+# Seperate unknown/NA from B117 and noVOC (omit B1351 due to there only being 4 entries)
+#NOTE, NOT MAKING A COPY
+dat_know <- droplevels(filter(dat_symp, variant == 'B117' | variant == 'noVOC'))
+dat_unknown <- droplevels(filter(dat_symp, variant == 'B117' | variant == 'noVOC'))
 
 ```
 
+```{r}
+library(randomForest)
+#Random forest schenanagains https://www.blopig.com/blog/2017/04/a-very-basic-introduction-to-random-forests-using-r/
+set.seed(17)
+
+indexes <- sample(1:nrow(dat_know), size=floor(nrow(dat_know)/3))
+
+training <- dat_know[indexes,]
+validation1 <- dat_know[-indexes,]
+
+rf_classifier = randomForest(variant ~ ., data=training, ntree=50, mtry=12, importance=TRUE)
+rf_classifier
+```
+```{r}
+varImpPlot(rf_classifier)
+```
+
+```{r}
+# Try with svm instead https://www.rdocumentation.org/packages/e1071/versions/1.7-6/topics/svm
+library(e1071)
+
+dat <- CalwData[c('variant','sex','symptoms.symptomatic','symptoms.fever','symptoms.feelingIll','symptoms.shivering','symptoms.chillsSweats','symptoms.musclePain','symptoms.headache','symptoms.cough','symptoms.difficultyBreathing','symptoms.runnyNose','symptoms.diarrhea','symptoms.nausea','symptoms.lossOfTaste','symptoms.lossOfSmell')]
+
+# Change NA variants and symptoms to 'unknown'
+#dat$variant[is.na(dat$variant)] <- 'unknown'
+dat[is.na(dat)] <- 'unknown'
+
+# Remove people who are asymptomatic
+dat_symp <- filter(dat, symptoms.symptomatic == 'yes')
+
+# Seperate unknown/NA from B117 and noVOC (omit B1351 due to there only being 4 entries)
+#NOTE, NOT MAKING A COPY
+dat_know <- droplevels(filter(dat_symp, variant == 'B117' | variant == 'noVOC'))
+dat_unknown <- droplevels(filter(dat_symp, variant == 'B117' | variant == 'noVOC'))
+
+
+#
+
+# make model
+model <- svm(variant ~ ., data=subset(training,select=-symptoms.symptomatic))
+
+```
+
+```{r}
+predict(model, validation1)
+```
 
 
 Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
-
-When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
-
-The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
