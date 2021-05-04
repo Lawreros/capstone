@@ -99,25 +99,54 @@ ui<- fluidPage(
       ),
       
       tabPanel("G 2- Symptoms", fluid = TRUE,
-               
+               h3("Symptom Distribution by Age"),
                fluidRow(
-                 h3(textOutput("Symptom Distribution by Age")),
-                 column(4,
+                 column(5,
+                        h4("Symptom Distribution in Total Group"),
+                        br(),
                         plotlyOutput("pieall")
+                        
                  ),
-                 column(2,
+                 column(5,
+                        h4("Symptom Distribution by Age"),
+                        br(),
+                        plotlyOutput('piesub')
+                    
+                 ),
+                   
+                 column(1,
                         radioButtons('agegroup', label=h3("Select Age Group Feature"),
                                      choices = list('0-4','5-9','10-14','15-19','20-24','25-29','30-34','35-39','40-44','45-49','50-54',
                                                     '55-59','60-64','65-69','70-74','75-79','80-84','85-89','90-94','95-99','100-104'),
                                      selected = '0-4',
-                                     width=200
-                                     )
+                                     width=100)
+                        )
                  ),
-                 column(4,
-                        plotlyOutput('piesub')
-                 )),
+               fluidRow( style = "height:900px",
+                 column(12,
+               plotlyOutput("bar_age")
+               )),
+               h3("Symptom Distribution by Timing of Test"),
                fluidRow(
-                 plotlyOutput('bar'),
+                 column(5,
+                    plotlyOutput('bar')
+                    ),
+                  column(7,
+                         selectInput('soi', "Select Symptom",
+                                     choices = list("feeling ill","fever","shivering","chills sweats","muscle pain",
+                                                    "headache","difficulty breathing","cough","sore throat","runny nose",
+                                                    "nausea","diarrhea","loss of smell","loss of taste"),
+                                     selected = 'loss of taste'
+                         ),
+                         br(),
+                         selectInput('ref', "Select reference group",
+                                     choices = list("before","immediate","early","late"),
+                                     selected = 'before'
+                         ),
+                         br(),
+                         br(),
+                        plotlyOutput('fischer')
+                         ),
                )
       ),
 
@@ -257,6 +286,27 @@ server <- function(input, output) {
       fig_sub
       
           })
+    
+    output$bar_age <- renderPlotly({
+      Symptom_distribution_age=CalwData %>%
+        select(c(age,contains("symptoms.")))%>%
+        select_if(is.factor)%>%
+        select(-symptoms.symptomatic) %>%
+        gather(symptom, value, -age ) %>%
+        group_by(age,symptom,value) %>%
+        summarize(n=n())%>%
+        filter(value=="yes")%>%
+        mutate(symptom=str_replace(symptom,"symptoms.","")%>%fix_symptoms)
+      
+      barplot=ggplot(Symptom_distribution_age, aes(x=age,y=n))+
+        geom_col(aes(fill=symptom),position ="fill", color="black")+
+        theme(axis.text.x = element_text(angle = 90))+
+        scale_fill_simpsons()
+      
+      ggplotly(barplot)%>% layout(height = 800, width = 500)
+      
+    })
+    
     output$bar <- renderPlotly({
       Symptom_distribution_delay=CalwData %>%
       select(c(testingdelay,contains("symptoms.")))%>%
@@ -278,8 +328,61 @@ server <- function(input, output) {
       geom_col(aes(fill=symptom),position ="fill", color="black")+
       scale_fill_simpsons()
     
-      ggplotly(barplot_delay)
+      ggplotly(barplot_delay)%>% layout(height = 800, width = 500)
     })
+    
+    output$fischer <- renderPlotly({
+      symptom_of_interes=input$soi
+      bin1=input$ref
+      
+      fischer_test_function=function(x, bin1){
+        plot_dataframe=NULL
+        data=x%>%group_by(delay_binned)%>%mutate(total=sum(n))%>%ungroup
+        for(b in 1:nlevels(data$delay_binned)){
+          bin_tmp=levels(data$delay_binned)[b]
+          if(bin_tmp!=bin1){
+            s1=data%>%filter(delay_binned==bin1)%>%filter(symptom==symptom_of_interes)%>%select(n)%>%as.numeric()
+            s2=data%>%filter(delay_binned==bin_tmp)%>%filter(symptom==symptom_of_interes)%>%select(n)%>%as.numeric()
+            ns1=data%>%filter(delay_binned==bin1)%>%filter(symptom!=symptom_of_interes)%>%summarize(sum(n))%>%as.numeric()
+            ns2=data%>%filter(delay_binned==bin_tmp)%>%filter(symptom!=symptom_of_interes)%>%summarize(sum(n))%>%as.numeric()
+            dat <- data.frame(
+              "symptom_yes" = c(s1,s2),
+              "symptom_no" = c(ns1,ns2),
+              row.names = c("bin1", "bin2"),
+              stringsAsFactors = FALSE)
+            
+            p_val=fisher.test(dat)$p.value
+            plot_dataframe=rbind(plot_dataframe,c("x_value"=bin_tmp, "label_value" = paste("p-value:",round(p_val,4)), "y_value"= 120 * max(c(s1/(s1+ns1)),s2/(s2+ns2))))}}
+        return(as.data.frame(plot_dataframe))
+      }
+      
+      Symptom_distribution_delay=CalwData %>%
+        select(c(testingdelay,contains("symptoms.")))%>%
+        select(-c(symptoms.fever,symptoms.symptomatic)) %>%
+        filter(!is.na(testingdelay))%>%
+        mutate(delay_binned=case_when(
+          testingdelay<0~"before",
+          testingdelay%in%(0:2)~"immediate",
+          testingdelay%in%(3:5)~"early",
+          testingdelay>5~"late")%>%factor(levels = c("before","immediate","early","late")))%>%
+        select(-testingdelay)%>%
+        gather(symptom, value, -delay_binned ) %>%
+        group_by(delay_binned,symptom,value) %>%
+        summarize(n=n())%>%
+        filter(value=="yes")%>%
+        mutate(symptom=str_replace(symptom,"symptoms.","")%>%fix_symptoms)
+      
+      barplot_delay=ggplot(Symptom_distribution_delay%>%group_by(delay_binned)%>%mutate(total=sum(n))%>%filter(symptom==symptom_of_interes), aes(x=delay_binned,y=100*n/total))+
+        geom_col(aes(fill=symptom), color="black")+
+        #geom_text (x="immediate", label=0.254015203922675, y=9)+
+        geom_text(data=fischer_test_function(Symptom_distribution_delay,bin1),aes(x=x_value, y=as.numeric(y_value), label=label_value))+
+        scale_fill_simpsons()
+      
+      
+      ggplotly(barplot_delay)%>% layout(height = 400, width = 600)
+      
+    })
+    
     
     ####
     
