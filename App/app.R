@@ -13,6 +13,7 @@ library(ggplot2)
 library(dplyr)
 library(plyr)
 library(tidyverse)
+library(lubridate)
 
 ui<- fluidPage(
     tabsetPanel(
@@ -175,11 +176,7 @@ server <- function(input, output) {
     output$delayed <- renderPlot({
       CalwData2 <- 
         CalwData %>% 
-        mutate(delayed.testing = ifelse(is.na(CalwData$sampleDateTime2), as.numeric(difftime(CalwData$sampleDateTime1, CalwData$symptoms.onsetDate, units = "days")), 
-                                        
-        ifelse(!is.na(CalwData$SampleDateTime2) && is.na(CalwData$sampleDateTime3), as.numeric(difftime(CalwData$sampleDateTime2, CalwData$symptoms.onsetDate, units = "days")), 
-                                               
-        as.numeric(difftime(CalwData$sampleDateTime3, CalwData$symptoms.onsetDate, units = "days"))))) %>% 
+        mutate(delayed.testing = ymd(indexcase)- symptoms.onsetDate) %>%
  
         mutate(Age_Cat = ifelse(age == '0-4' | age == '5-9' | age == '10-14' | age == '15-19', 1,
                                 ifelse(age == '20-24' | age == '25-29' | age == '30-34' | age == '35-39', 2,
@@ -191,41 +188,36 @@ server <- function(input, output) {
                                   labels = c("0-19", "20-39", "40-59", "60-79", "80+"))
         
         
-  
+   
 
       ggplot(CalwData2[CalwData2$Age_Cat %in% input$ages2,], aes(delayed.testing, fill = Age_Cat))+geom_density(alpha=0.4) + xlim(c(-10, 14)) + theme_minimal() + scale_fill_brewer(palette="Accent")
 
     })
-    # By traveled or not 
+    
+     # By Traveled Status 
     
     output$delayed1 <- renderPlot({
-      CalwData2 <- 
-        CalwData %>% 
-        mutate(delayed.testing = ifelse(is.na(CalwData$sampleDateTime2), as.numeric(difftime(CalwData$sampleDateTime1, CalwData$symptoms.onsetDate, units = "days")), 
-                                        
-                                        ifelse(!is.na(CalwData$SampleDateTime2) && is.na(CalwData$sampleDateTime3), as.numeric(difftime(CalwData$sampleDateTime2, CalwData$symptoms.onsetDate, units = "days")), 
-                                               
-                                               as.numeric(difftime(CalwData$sampleDateTime3, CalwData$symptoms.onsetDate, units = "days"))))) 
-      
-       mu <- ddply(CalwData2, "traveled", summarise, grp.mean = mean(delayed.testing)) 
+
+    CalwData2 <- 
+      CalwData %>% 
+      mutate(delayed.testing = ymd(indexcase)- symptoms.onsetDate)
     
+     
       ggplot(CalwData2[CalwData2$traveled %in% input$traveled,], aes(delayed.testing, fill = traveled))+geom_density(alpha=0.4) + xlim(c(-5, 10)) + theme_minimal() + scale_fill_brewer(palette="Dark2")
     })
     
-    # By known contact or not 
+    # By Known Contact Status 
+    
     output$delayed2 <- renderPlot({
       CalwData2 <- 
         CalwData %>% 
-        mutate(delayed.testing = ifelse(is.na(CalwData$sampleDateTime2), as.numeric(difftime(CalwData$sampleDateTime1, CalwData$symptoms.onsetDate, units = "days")), 
-                                        
-              ifelse(!is.na(CalwData$SampleDateTime2) && is.na(CalwData$sampleDateTime3), as.numeric(difftime(CalwData$sampleDateTime2, CalwData$symptoms.onsetDate, units = "days")), 
-                                               
-              as.numeric(difftime(CalwData$sampleDateTime3, CalwData$symptoms.onsetDate, units = "days")))))
+        mutate(delayed.testing = ymd(indexcase)- symptoms.onsetDate)
       
       ggplot(CalwData2[CalwData2$contactSourceCase %in% input$contact,], aes(delayed.testing, fill = contactSourceCase))+geom_density(alpha=0.4) + xlim(c(-5, 10)) + theme_minimal() + scale_fill_brewer(palette="Dark2")
     })
     
-    # By Sex 
+    #By Sex 
+    
     output$delayed3 <- renderPlot({
       CalwData2 <- 
         CalwData %>% 
@@ -234,8 +226,19 @@ server <- function(input, output) {
                                         ifelse(!is.na(CalwData$SampleDateTime2) && is.na(CalwData$sampleDateTime3), as.numeric(difftime(CalwData$sampleDateTime2, CalwData$symptoms.onsetDate, units = "days")), 
                                                
                                                as.numeric(difftime(CalwData$sampleDateTime3, CalwData$symptoms.onsetDate, units = "days")))))
+ 
       
       ggplot(CalwData2[CalwData2$sex %in% input$sex,], aes(delayed.testing, fill = sex))+geom_density(alpha = 0.4) + xlim(c(-5, 10)) + theme_minimal()+ scale_fill_brewer(palette="Dark2")
+    })
+    
+    # By Pregnancy Status 
+    
+    output$delayed4 <- renderPlot({
+      CalwData2 <- 
+        CalwData %>% 
+        mutate(delayed.testing = ymd(indexcase)- symptoms.onsetDate)
+      
+      ggplot(CalwData2[CalwData2$pregnant %in% input$pregnant,], aes(delayed.testing, fill = pregnant))+geom_density(alpha = 0.4) + xlim(c(-5, 10)) + theme_minimal()+ scale_fill_brewer(palette="Dark2")
     })
     
     ####
