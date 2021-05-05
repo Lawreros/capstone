@@ -63,7 +63,7 @@ ui<- fluidPage(
       
       
       tabPanel("E", fluid = TRUE,
-               headerPanel("Association between Travel Outside District and COVID-19 Variants"),
+               headerPanel("Association between Sex, Age and COVID-19 Variants"),
                sidebarLayout(
                  sidebarPanel(
                    h3('COVID-19 Variants Observed:'),
@@ -73,9 +73,9 @@ ui<- fluidPage(
                    h5('Initially detected in South Africa'),
                    h4('noVOC'),
                    h5('Variant of no concern')),
-                 mainPanel(h2("Association Results"),
+                 mainPanel(h2("Association Results:Sex and Variants"),
                            h3('Chi-Square Test:'),
-                           h4('A chi-square test indicates no significant association between COVID-19 variant and travel history (p=0.942)'),
+                           h4('A chi-square test indicates no significant association between COVID-19 variant and age category (p=0.)'),
                  textOutput('chisq'),
                  h3('Data Frequency Table:'),
                  tableOutput('varianttraveltab'),
@@ -190,20 +190,20 @@ server <- function(input, output) {
     #### Tab E Association between travel and the variants
     
     output$varianttraveltab <- renderTable({
-      as.data.frame.matrix(xtabs(~traveled + variant, data= CalwData))
+      as.data.frame.matrix(xtabs(~sex + variant, data= CalwData))
     })
     
     output$varianttravelmosaic <- renderPlot({
-      mosaic <- table(CalwData$variant, CalwData$traveled)
-      mosaicplot(mosaic, main = "COVID-19 Variants by Travel History Mosaic Plot",
+      mosaic <- table(CalwData$variant, CalwData$sex)
+      mosaicplot(mosaic, main = "COVID-19 Variants by Sex Mosaic Plot",
                  xlab = "COVID-19 Variants",
-                 ylab = "Traveled",
+                 ylab = "Sex",
                  las = 2,
                  color = "skyblue2")
     })
     
     output$chisq <- renderPrint({
-      tbl <- table(CalwData$variant, CalwData$traveled)
+      tbl <- table(CalwData$variant, CalwData$sex)
       results <- chisq.test(tbl)
       results
     })
@@ -214,13 +214,13 @@ server <- function(input, output) {
     
     output$logvar <- renderUI({
       CalwData2 <- CalwData %>%
-        mutate(Age_Cat = ifelse(age == '0-4' | age == '5-9' | age == '10-14' | age == '15-19', 1,
-                                ifelse(age == '20-24' | age == '25-29' | age == '30-34' | age == '35-39', 2,
-                                       ifelse(age == '40-44' | age == '45-49' | age == '50-54' | age == '55-59', 3,
-                                              ifelse(age == '60-64' | age == '65-69' | age == '70-74' | age == '75-79', 4, 5)))))
+        mutate(Age_Cat = ifelse(age == '0-4' | age == '5-9' | age == '10-14' | age == '15-19', 0,
+                                ifelse(age == '20-24' | age == '25-29' | age == '30-34' | age == '35-39', 1,
+                                       ifelse(age == '40-44' | age == '45-49' | age == '50-54' | age == '55-59', 2,
+                                              ifelse(age == '60-64' | age == '65-69' | age == '70-74' | age == '75-79', 3, 4)))))
       
       CalwData2$Age_Cat <- factor(CalwData2$Age_Cat,
-                                  levels = c(1,2,3, 4, 5),
+                                  levels = c(0,1,2,3, 4),
                                   labels = c("0-19", "20-39", "40-59", "60-79", "80+"))
       
       mylogit <- glm(condition ~ Age_Cat + sex , data = CalwData2, family = "binomial")
@@ -232,28 +232,38 @@ server <- function(input, output) {
     
     output$predict <- renderPrint({
       CalwData2 <- CalwData %>%
-        mutate(Age_Cat = ifelse(age == '0-4' | age == '5-9' | age == '10-14' | age == '15-19', 1,
-                                ifelse(age == '20-24' | age == '25-29' | age == '30-34' | age == '35-39', 2,
-                                       ifelse(age == '40-44' | age == '45-49' | age == '50-54' | age == '55-59', 3,
-                                              ifelse(age == '60-64' | age == '65-69' | age == '70-74' | age == '75-79', 4, 5)))))
+        mutate(Age_Cat = ifelse(age == '0-4' | age == '5-9' | age == '10-14' | age == '15-19', 0,
+                                ifelse(age == '20-24' | age == '25-29' | age == '30-34' | age == '35-39', 1,
+                                       ifelse(age == '40-44' | age == '45-49' | age == '50-54' | age == '55-59', 2,
+                                              ifelse(age == '60-64' | age == '65-69' | age == '70-74' | age == '75-79', 3, 4)))))
       
       CalwData2$Age_Cat <- factor(CalwData2$Age_Cat,
-                                  levels = c(1,2,3, 4, 5),
+                                  levels = c(0,1,2,3, 4),
                                   labels = c("0-19", "20-39", "40-59", "60-79", "80+"))
       
       mylogit <- glm(condition ~ Age_Cat + sex , data = CalwData2, family = "binomial")
       
-      newdata = data.frame()
+      #newdata <- data.frame(Age_Cat = "NA",
+                            #sex = "NA")
       
-      if (input$age == "0-19") {newdata$Age_Cat = 1} else if
-                                      (input$age == "20-39") {newdata$Age_Cat = 2} else if
-                                      (input$age == "40-59") {newdata$Age_Cat = 3} else if 
-                                      (input$age == "60-79") {newdata$Age_Cat = 4}
-                                      else {newdata$Age_Cat = 5}
+      newdata <- newdata %>%
+        mutate(Age_Cat = input$age) %>%
+        mutate(sex = input$sex)
+          
+      
+     # newdata <- as.data.frame(newdata)
+        #if (input$age == "0-19") {newdata$Age_Cat = 0} else if
+                                      #(input$age == "20-39") {newdata$Age_Cat = 1} else if
+                                      #(input$age == "40-59") {newdata$Age_Cat = 2} else if 
+                                      #(input$age == "60-79") {newdata$Age_Cat = 3}
+                                      #else {newdata$Age_Cat = 4}
+        #if (input$sex == "female") {newdata$sex = 1} else {newdata$sex = 0}
     
-      if (input$sex == "female") {newdata$sex = 1} else {newdata$sex = 0}
+    #newdata[, 1:2] <- sapply(newdata[, 1:2], as.factor)
+      
       
       prob <- predict(mylogit, newdata, type="response")
+      
       prob
     })
     
