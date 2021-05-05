@@ -222,9 +222,13 @@ server <- function(input, output) {
       CalwData2 <- 
         CalwData %>% 
          mutate(delayed.testing = ymd(indexcase)- symptoms.onsetDate)
+        
+       mu <- CalwData2 %>% 
+        group_by(sex) %>% 
+        summarize (grp.mean = mean(delayed.testing))
  
       
-      ggplot(CalwData2[CalwData2$sex %in% input$sex,], aes(delayed.testing, fill = sex))+geom_density(alpha = 0.4) + xlim(c(-5, 10)) + theme_minimal()+ scale_fill_brewer(palette="Dark2")
+      ggplot(CalwData2[CalwData2$sex %in% input$sex,], aes(delayed.testing, fill = sex))+geom_density(alpha = 0.4) + geom_vline(mu[mu$sex %in% input$sex,], xintercept = grp.mean) + xlim(c(-5, 10)) + theme_minimal()+ scale_fill_brewer(palette="Dark2")
     })
     
     # By Pregnancy Status 
