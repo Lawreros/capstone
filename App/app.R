@@ -68,22 +68,21 @@ ui<- fluidPage(
                sidebarLayout(
                  sidebarPanel(h3('Summary of Analysis:'),
                               h5('In this tab, we evaluate the association between sex, age-category, and condition.'),
-                              h5('Condition was defined if died if person was killed from COVID-19 infection.'),
+                              h5('Condition was defined as dead if person was killed from COVID-19 infection.'),
                               h5('Persons with unknown or missing sex, age, or condition were excluded from analysis.'),
                               h5('Chi-square tests were used to test for significant associations.')
                    ),
                  mainPanel(h1("Association Results:"),
                            h2('Sex Results'),
-                           h3('Fisher Exact Test:Sex and Condition'),
-                           h4('A fisher exact test indicates no significant association between condition and sex (p=0.079)'),
-                      textOutput('sexfisher'),
+                           h3('Chi-Square Test:Sex and Condition'),
+                           h4('A chi-square test indicates condition is not significantly associated with sex (p = 0.06.)'),
                       textOutput('chisq'),
                       h3('Mosaic Plot: Sex'),
                       plotlyOutput('sexmosaic'),
                  h2("Age Category Results"),
-                      h3('Fisher Exact Test: Age and Condition'),
-                      h4('A fisher exact test indicates no significant association between COVID-19 variant and age-category (p=0.)'),
-                      textOutput('agefisher'),
+                      h3('Chi-Square Test: Age and Condition'),
+                      h4('A chi-square test indicates condition is significantly associated with age (p<0.001).'),
+                      textOutput('chisqage'),
                       h3('Mosaic Plot: Age Category'),
                       plotlyOutput('agemosaic')
                  ))
@@ -244,6 +243,25 @@ server <- function(input, output) {
       
       resultsage <- fisher.test(CalwDatanew$condition, CalwDatanew$Age_Cat, workspace = 400,000)
       resultsage
+    })
+    
+    output$chisqage <- renderPrint({
+      CalwDatanew <- CalwData %>%
+      select(age, sex, condition)
+      CalwDatanew <- CalwDatanew[complete.cases(CalwDatanew),]
+      
+      CalwDatanew <- CalwDatanew %>%
+        mutate(Age_Cat = ifelse(age == '0-4' | age == '5-9' | age == '10-14' | age == '15-19', 0,
+                                ifelse(age == '20-24' | age == '25-29' | age == '30-34' | age == '35-39', 1,
+                                       ifelse(age == '40-44' | age == '45-49' | age == '50-54' | age == '55-59', 2,
+                                              ifelse(age == '60-64' | age == '65-69' | age == '70-74' | age == '75-79', 3, 4)))))
+      CalwDatanew$Age_Cat <- factor(CalwDatanew$Age_Cat,
+                                    levels = c(0,1,2,3, 4),
+                                    labels = c("0-19", "20-39", "40-59", "60-79", "80+"))
+      tbl <- table(CalwDatanew$condition, CalwDatanew$Age_Cat)
+      results <- chisq.test(tbl)
+      results
+      
     })
     
     output$agemosaic <- renderPlotly({
