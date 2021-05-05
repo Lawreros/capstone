@@ -89,17 +89,25 @@ ui<- fluidPage(
       tabPanel("F", fluid = TRUE,
                sidebarLayout(
                  sidebarPanel(
-                   radioButtons('sex', label=h3("Select Sex"),
+                   h3('Select Age and Sex:'),
+                   radioButtons('sex', label=h4("Select Sex"),
                                 c('female' = 'female','male'= 'male'),
                                 selected = 'female'),
                    
-                   radioButtons("age", label=h3("Select Age"),
+                   radioButtons("age", label=h4("Select Age"),
                                 choices = list('0-19','20-39','40-59','60-79','80+'),
                                 selected = '0-19')
                    ),
                  mainPanel(h2('Odds of Death Given Sex and Age'),
+                           h4('Outcome = Death'),
+                           h4('Predictors = Age-Category and Sex'),
                            htmlOutput('logvar'),
-                           textOutput(predict)
+                           h3('Odds Ratio Interpretations:'),
+                           h4('The odds of death for females is 0.42 times the odds of death for males, or significantly lower by 58% (p<0.01.'),
+                           h4('The odds of death increases with each increasing age category and is highest in adults over 80 years old. The odds of death in adults over 80 years old is 117.51 times the odds of death in children 0-19 years old (p<0.001).'),
+                           h3('Predicted Probability of Death Given Inputs (Age Category and Sex):'),
+                           textOutput('predict')
+                           
                            )
                  
       )),
