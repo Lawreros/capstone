@@ -221,11 +221,7 @@ server <- function(input, output) {
     output$delayed3 <- renderPlot({
       CalwData2 <- 
         CalwData %>% 
-        mutate(delayed.testing = ifelse(is.na(CalwData$sampleDateTime2), as.numeric(difftime(CalwData$sampleDateTime1, CalwData$symptoms.onsetDate, units = "days")), 
-                                        
-                                        ifelse(!is.na(CalwData$SampleDateTime2) && is.na(CalwData$sampleDateTime3), as.numeric(difftime(CalwData$sampleDateTime2, CalwData$symptoms.onsetDate, units = "days")), 
-                                               
-                                               as.numeric(difftime(CalwData$sampleDateTime3, CalwData$symptoms.onsetDate, units = "days")))))
+         mutate(delayed.testing = ymd(indexcase)- symptoms.onsetDate)
  
       
       ggplot(CalwData2[CalwData2$sex %in% input$sex,], aes(delayed.testing, fill = sex))+geom_density(alpha = 0.4) + xlim(c(-5, 10)) + theme_minimal()+ scale_fill_brewer(palette="Dark2")
