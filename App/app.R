@@ -14,6 +14,7 @@ library(dplyr)
 library(sjPlot)
 library(sjmisc)
 library(sjlabelled)
+library(ggmosaic)
 
 ui<- fluidPage(
     tabsetPanel(
@@ -63,24 +64,28 @@ ui<- fluidPage(
       
       
       tabPanel("E", fluid = TRUE,
-               headerPanel("Association between Sex, Age and COVID-19 Variants"),
+               headerPanel("Association between Sex, Age and Condition (Alive/Dead)"),
                sidebarLayout(
-                 sidebarPanel(
-                   h3('COVID-19 Variants Observed:'),
-                   h4('B117'),
-                   h5('Initially detected in UK'),
-                   h4('B1351'),
-                   h5('Initially detected in South Africa'),
-                   h4('noVOC'),
-                   h5('Variant of no concern')),
-                 mainPanel(h2("Association Results:Sex and Variants"),
-                           h3('Chi-Square Test:'),
-                           h4('A chi-square test indicates no significant association between COVID-19 variant and age category (p=0.)'),
-                 textOutput('chisq'),
-                 h3('Data Frequency Table:'),
-                 tableOutput('varianttraveltab'),
-                 h3('Mosaic Plot:'),
-                 plotOutput('varianttravelmosaic')
+                 sidebarPanel(h3('Summary of Analysis:'),
+                              h5('In this tab, we evaluate the association between sex, age-category, and condition.'),
+                              h5('Condition was defined if died if person was killed from COVID-19 infection.'),
+                              h5('Persons with unknown or missing sex, age, or condition were excluded from analysis.'),
+                              h5('Chi-square tests were used to test for significant associations.')
+                   ),
+                 mainPanel(h1("Association Results:"),
+                           h2('Sex Results'),
+                           h3('Fisher Exact Test:Sex and Condition'),
+                           h4('A fisher exact test indicates no significant association between condition and sex (p=0.079)'),
+                      textOutput('sexfisher'),
+                      textOutput('chisq'),
+                      h3('Mosaic Plot: Sex'),
+                      plotlyOutput('sexmosaic'),
+                 h2("Age Category Results"),
+                      h3('Fisher Exact Test: Age and Condition'),
+                      h4('A fisher exact test indicates no significant association between COVID-19 variant and age-category (p=0.)'),
+                      textOutput('agefisher'),
+                      h3('Mosaic Plot: Age Category'),
+                      plotlyOutput('agemosaic')
                  ))
                
       ),
@@ -103,9 +108,10 @@ ui<- fluidPage(
                            h4('Predictors = Age-Category and Sex'),
                            htmlOutput('logvar'),
                            h3('Odds Ratio Interpretations:'),
-                           h4('The odds of death for females is 0.42 times the odds of death for males, or significantly lower by 58% (p<0.01.'),
-                           h4('The odds of death increases with each increasing age category and is highest in adults over 80 years old. The odds of death in adults over 80 years old is 117.51 times the odds of death in children 0-19 years old (p<0.001).'),
-                           h3('Predicted Probability of Death Given Inputs (Age Category and Sex):'),
+                           h5('The odds of death for females is 0.42 times the odds of death for males, or significantly lower by 58% (p<0.01.'),
+                           h5('The odds of death increases with each increasing age category and is highest in adults over 80 years old. The odds of death in adults over 80 years old is 117.51 times the odds of death in children 0-19 years old (p<0.001).'),
+                           h3('Predicted Percent Chance of Death Given Inputs (Age Category and Sex):'),
+                           h5('Chance of death calculated by converting log odds of death into predicted probability of death.'),
                            textOutput('predict')
                            
                            )
@@ -189,23 +195,76 @@ server <- function(input, output) {
     
     #### Tab E Association between travel and the variants
     
-    output$varianttraveltab <- renderTable({
-      as.data.frame.matrix(xtabs(~sex + variant, data= CalwData))
+    #output$varianttraveltab <- renderTable({
+      #as.data.frame.matrix(xtabs(~sex + variant, data= CalwData))
+    #})
+    
+    output$sexmosaic <- renderPlotly({
+      
+      CalwDatanew <- CalwData %>%
+        select(age, sex, condition)
+      CalwDatanew <- CalwDatanew[complete.cases(CalwDatanew),]
+    
+      mosaic_examp <-  ggplot(data = CalwDatanew) +
+        geom_mosaic(aes(x = product( condition, sex), fill = condition)) +   
+        labs(y="Condition", x="Sex", title = "Mosaic Plot: Sex and COVID-19 Condition") 
+      mosaic <- ggplotly(mosaic_examp)
+      mosaic
     })
     
-    output$varianttravelmosaic <- renderPlot({
-      mosaic <- table(CalwData$variant, CalwData$sex)
-      mosaicplot(mosaic, main = "COVID-19 Variants by Sex Mosaic Plot",
-                 xlab = "COVID-19 Variants",
-                 ylab = "Sex",
-                 las = 2,
-                 color = "skyblue2")
+    output$sexfisher <- renderPrint({
+      CalwDatanew <- CalwData %>%
+        select(age, sex, condition)
+      CalwDatanew <- CalwDatanew[complete.cases(CalwDatanew),]
+      
+      results <- fisher.test(CalwDatanew$condition, CalwDatanew$sex)
+      results
     })
     
     output$chisq <- renderPrint({
-      tbl <- table(CalwData$variant, CalwData$sex)
+      tbl <- table(CalwDatanew$condition, CalwDatanew$sex)
       results <- chisq.test(tbl)
       results
+      
+    })
+    
+    output$agefisher <- renderPrint({
+      CalwDatanew <- CalwData %>%
+        select(age, sex, condition)
+      CalwDatanew <- CalwDatanew[complete.cases(CalwDatanew),]
+      
+      CalwDatanew <- CalwDatanew %>%
+        mutate(Age_Cat = ifelse(age == '0-4' | age == '5-9' | age == '10-14' | age == '15-19', 0,
+                                ifelse(age == '20-24' | age == '25-29' | age == '30-34' | age == '35-39', 1,
+                                       ifelse(age == '40-44' | age == '45-49' | age == '50-54' | age == '55-59', 2,
+                                              ifelse(age == '60-64' | age == '65-69' | age == '70-74' | age == '75-79', 3, 4)))))
+      CalwDatanew$Age_Cat <- factor(CalwDatanew$Age_Cat,
+                                  levels = c(0,1,2,3, 4),
+                                  labels = c("0-19", "20-39", "40-59", "60-79", "80+"))
+      
+      resultsage <- fisher.test(CalwDatanew$condition, CalwDatanew$Age_Cat, workspace = 400,000)
+      resultsage
+    })
+    
+    output$agemosaic <- renderPlotly({
+      CalwDatanew <- CalwData %>%
+        select(age, sex, condition)
+      CalwDatanew <- CalwDatanew[complete.cases(CalwDatanew),]
+      
+      CalwDatanew <- CalwDatanew %>%
+        mutate(Age_Cat = ifelse(age == '0-4' | age == '5-9' | age == '10-14' | age == '15-19', 0,
+                                ifelse(age == '20-24' | age == '25-29' | age == '30-34' | age == '35-39', 1,
+                                       ifelse(age == '40-44' | age == '45-49' | age == '50-54' | age == '55-59', 2,
+                                              ifelse(age == '60-64' | age == '65-69' | age == '70-74' | age == '75-79', 3, 4)))))
+      CalwDatanew$Age_Cat <- factor(CalwDatanew$Age_Cat,
+                                  levels = c(0,1,2,3, 4),
+                                  labels = c("0-19", "20-39", "40-59", "60-79", "80+"))
+      
+      mosaic_examp <-  ggplot(data = CalwDatanew) +
+        geom_mosaic(aes(x = product( condition, Age_Cat), fill = condition)) +   
+        labs(y="Condition", x="Age Category", title = "Mosaic Plot: Age and Condition") 
+      mosaic <- ggplotly(mosaic_examp)
+      mosaic
     })
     
     ####
@@ -242,29 +301,18 @@ server <- function(input, output) {
                                   labels = c("0-19", "20-39", "40-59", "60-79", "80+"))
       
       mylogit <- glm(condition ~ Age_Cat + sex , data = CalwData2, family = "binomial")
-      
-      #newdata <- data.frame(Age_Cat = "NA",
-                            #sex = "NA")
+    
+      newdata <- data.frame(Age_Cat = "NA",
+                            sex = "NA")
       
       newdata <- newdata %>%
         mutate(Age_Cat = input$age) %>%
         mutate(sex = input$sex)
           
-      
-     # newdata <- as.data.frame(newdata)
-        #if (input$age == "0-19") {newdata$Age_Cat = 0} else if
-                                      #(input$age == "20-39") {newdata$Age_Cat = 1} else if
-                                      #(input$age == "40-59") {newdata$Age_Cat = 2} else if 
-                                      #(input$age == "60-79") {newdata$Age_Cat = 3}
-                                      #else {newdata$Age_Cat = 4}
-        #if (input$sex == "female") {newdata$sex = 1} else {newdata$sex = 0}
-    
-    #newdata[, 1:2] <- sapply(newdata[, 1:2], as.factor)
-      
-      
       prob <- predict(mylogit, newdata, type="response")
       
-      prob
+       percent <- prob*100
+       percent
     })
     
     ####
