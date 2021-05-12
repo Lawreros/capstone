@@ -55,26 +55,38 @@ ui<- fluidPage(
       
       
         tabPanel("Delayed Testing", fluid = TRUE,
+               
                sidebarLayout(
-                 sidebarPanel(checkboxGroupInput("ages2", label=h3("Select Age Group"),
+                 sidebarPanel(h3("Select by:"), 
+                              checkboxGroupInput("ages2", label=h4("Age Group"),
                                                  choices = list('0-19','20-39','40-59','60-79','80+'),
                                                  selected = '0-19'),
-                              checkboxGroupInput('traveled', label=h3("Previous Travel?"),
+                              checkboxGroupInput('traveled', label=h4("Previous Travel"),
                                            choices = list('yes', 'no'),
                                            selected = 'yes'),
-                              checkboxGroupInput('contact', label=h3("Known Contact?"),
+                              checkboxGroupInput('contact', label=h4("Known Contact Source"),
                                                  choices = list('yes', 'no', 'unknown'),
                                                  selected = 'yes'), 
-                              checkboxGroupInput('sex', label=h3("Select Sex"),
+                              checkboxGroupInput('sex', label=h4("Sex"),
                                                  choices = list('male', 'female'),
-                                                 selected = 'male')
+                                                 selected = 'male'), 
+                              checkboxGroupInput('pregnant', label=h4("Pregnancy Status"),
+                                                 choices = list('yes', 'no', 'unknown'),
+                                                 selected = 'yes')
                 ),
                  mainPanel(
+                   h3("Density Curves of Delay in Testing"), 
+                   p("The delayed testing variable is calculated by the number of days since symptom onset to an individual's first (positive result) test."),
+                   p("Negative days of delayed testing can be explained if the individual was tested before symptom onset due to a known outbreak or contact, or vulnerable settings, such as nursing homes."),
+                   p("The density curves below show the distribution of days until testing by age, traveled status, known contact source, sex, and pregnancy status."),
+                   p("The dashed lines indicate the mean for each selected group."),
+                   p("How to use: Select criteria on the left panel and click on respective tab to view results."),
                    tabsetPanel(
                    tabPanel("By Age", plotOutput('delayed')),
                    tabPanel("Previous Travel", plotOutput('delayed1')),
                    tabPanel("Known Contact", plotOutput('delayed2')),
-                   tabPanel("By Sex", plotOutput('delayed3'))
+                   tabPanel("By Sex", plotOutput('delayed3')), 
+                   tabPanel("Pregnant or Not", plotOutput('delayed4'))
                  )
                  )
                )
@@ -168,10 +180,8 @@ server <- function(input, output) {
     ####
     
     #### Tab "Delayed Testing" 
-  
-    # Density curves of days until testing
     
-    # By Age Category 
+  # Bar chart for delayed days
     
     output$delayed <- renderPlot({
       CalwData2 <- 
@@ -187,14 +197,25 @@ server <- function(input, output) {
                                   levels = c(1,2,3, 4, 5),
                                   labels = c("0-19", "20-39", "40-59", "60-79", "80+"))
         
-        
-   
+        mu <- CalwData2 %>% 
+          group_by(Age_Cat) %>% 
+          summarize (grp.mean = mean(delayed.testing, na.rm = TRUE)) %>% 
+          ungroup()
 
-      ggplot(CalwData2[CalwData2$Age_Cat %in% input$ages2,], aes(delayed.testing, fill = Age_Cat))+geom_density(alpha=0.4) + xlim(c(-10, 14)) + theme_minimal() + scale_fill_brewer(palette="Accent")
-
+      ggplot()+
+        geom_density(CalwData2[CalwData2$Age_Cat %in% input$ages2,], mapping = aes(delayed.testing, fill = Age_Cat), alpha=0.4) +
+        geom_vline(mu[mu$Age_Cat %in% input$ages2,], mapping = aes(xintercept = grp.mean), linetype="dashed") +
+        geom_label_repel(mu[mu$Age_Cat %in% input$ages2,], mapping = aes(x = grp.mean, y= 0.2, label = paste(round(grp.mean, 3)), fill = input$ages2), colour="white") +
+        xlim(c(-10, 14)) + 
+        theme_minimal() + 
+        ggtitle ("Delayed Testing by Age") + 
+        theme(plot.title = element_text(hjust = 0.5, size = 14, face = "bold")) + 
+        xlab("Number of Days") + 
+        ylab("Density") + 
+        guides(fill=guide_legend(title="Age Category")) + 
+        scale_fill_brewer(palette="Dark2")
+      
     })
-    
-     # By Traveled Status 
     
     output$delayed1 <- renderPlot({
 
@@ -202,44 +223,106 @@ server <- function(input, output) {
       CalwData %>% 
       mutate(delayed.testing = ymd(indexcase)- symptoms.onsetDate)
     
-     
-      ggplot(CalwData2[CalwData2$traveled %in% input$traveled,], aes(delayed.testing, fill = traveled))+geom_density(alpha=0.4) + xlim(c(-5, 10)) + theme_minimal() + scale_fill_brewer(palette="Dark2")
-    })
     
-    # By Known Contact Status 
+    mu <- CalwData2 %>% 
+      group_by(traveled) %>% 
+      summarize (grp.mean = mean(delayed.testing, na.rm = TRUE)) %>% 
+      ungroup()
+
+     
+      ggplot()+
+      geom_density(CalwData2[CalwData2$traveled %in% input$traveled,], mapping = aes(delayed.testing, fill = traveled), na.rm = TRUE, alpha=0.4) + 
+        geom_vline(mu[mu$traveled %in% input$traveled,], mapping = aes(xintercept = grp.mean), linetype="dashed") +
+        geom_label_repel(mu[mu$traveled %in% input$traveled,], mapping = aes(x = grp.mean, y= 0.2, label = paste(round(grp.mean, 3)), fill = input$traveled), colour="white") +
+        xlim(c(-5, 10))+ 
+        theme_minimal() + 
+        ggtitle ("Delayed Testing by Pregnancy Status") + 
+        theme(plot.title = element_text(hjust = 0.5, size = 14, face = "bold")) + 
+        xlab("Number of Days") + 
+        ylab("Density") + 
+        guides(fill=guide_legend(title="Pregnancy Status")) + 
+        scale_fill_brewer(palette="Dark2")
+     
+    })
     
     output$delayed2 <- renderPlot({
       CalwData2 <- 
         CalwData %>% 
         mutate(delayed.testing = ymd(indexcase)- symptoms.onsetDate)
       
-      ggplot(CalwData2[CalwData2$contactSourceCase %in% input$contact,], aes(delayed.testing, fill = contactSourceCase))+geom_density(alpha=0.4) + xlim(c(-5, 10)) + theme_minimal() + scale_fill_brewer(palette="Dark2")
+      mu <- CalwData2 %>% 
+        group_by(contactSourceCase) %>% 
+        summarize (grp.mean = mean(delayed.testing, na.rm = TRUE)) %>% 
+        ungroup()
+      
+      ggplot() + 
+      geom_density(CalwData2[CalwData2$contactSourceCase %in% input$contact,], mapping = aes(delayed.testing, fill = contactSourceCase), na.rm = TRUE, alpha=0.4) + 
+        geom_vline(mu[mu$contactSourceCase %in% input$contact,], mapping = aes(xintercept = grp.mean), linetype="dashed") +
+        geom_label_repel(mu[mu$contactSourceCase %in% input$contact,], mapping = aes(x = grp.mean, y= 0.2, label = paste(round(grp.mean, 3)), fill = input$contact), colour="white") +
+        xlim(c(-5, 10)) + 
+        theme_minimal() + 
+        ggtitle ("Delayed Testing by Known Contact Source") + 
+        theme(plot.title = element_text(hjust = 0.5, size = 14, face = "bold")) + 
+        xlab("Number of Days") + 
+        ylab("Density") + 
+        guides(fill=guide_legend(title="Known Contact")) + 
+        scale_fill_brewer(palette="Dark2")
+        
     })
-    
-    #By Sex 
     
     output$delayed3 <- renderPlot({
       CalwData2 <- 
         CalwData %>% 
-         mutate(delayed.testing = ymd(indexcase)- symptoms.onsetDate)
-        
-       mu <- CalwData2 %>% 
-        group_by(sex) %>% 
-        summarize (grp.mean = mean(delayed.testing), na.rm = TRUE)
- 
+        mutate(delayed.testing = ymd(indexcase)-symptoms.onsetDate)
       
-      ggplot(CalwData2[CalwData2$sex %in% input$sex,], aes(delayed.testing, fill = sex))+geom_density(alpha = 0.4) + geom_vline(mu[mu$sex %in% input$sex,], xintercept = mu$grp.mean) + xlim(c(-5, 10)) + theme_minimal()+ scale_fill_brewer(palette="Dark2")
+      mu <- CalwData2 %>% 
+        group_by(sex) %>% 
+        summarize (grp.mean = mean(delayed.testing, na.rm = TRUE)) %>% 
+        ungroup()
+      
+      ggplot() + 
+        geom_density(CalwData2[CalwData2$sex %in% input$sex,], mapping = aes(delayed.testing, fill = sex), na.rm = TRUE, alpha = 0.4) + 
+        geom_vline(mu[mu$sex %in% input$sex,], mapping = aes(xintercept = grp.mean), linetype="dashed") +
+        geom_label_repel(mu[mu$sex %in% input$sex,], mapping = aes(x = grp.mean, y= 0.2, label = paste(round(grp.mean, 3)), fill = input$sex), colour="white") +
+        xlim(c(-5, 10)) + 
+        theme_minimal() + 
+        ggtitle ("Delayed Testing by Sex") + 
+        theme(plot.title = element_text(hjust = 0.5, size = 14, face = "bold")) + 
+        xlab("Number of Days") + 
+        ylab("Density") + 
+        guides(fill=guide_legend(title="Sex")) + 
+        scale_fill_brewer(palette="Dark2") 
+       
+
     })
     
-    # By Pregnancy Status 
     
     output$delayed4 <- renderPlot({
       CalwData2 <- 
         CalwData %>% 
         mutate(delayed.testing = ymd(indexcase)- symptoms.onsetDate)
       
-      ggplot(CalwData2[CalwData2$pregnant %in% input$pregnant,], aes(delayed.testing, fill = pregnant))+geom_density(alpha = 0.4) + xlim(c(-5, 10)) + theme_minimal()+ scale_fill_brewer(palette="Dark2")
+      mu <- CalwData2 %>% 
+        group_by(pregnant) %>% 
+        summarize (grp.mean = mean(delayed.testing, na.rm = TRUE)) %>% 
+        ungroup()
+    
+      
+      ggplot() + 
+      geom_density(CalwData2[CalwData2$pregnant %in% input$pregnant,], mapping = aes(delayed.testing, fill = pregnant), na.rm = TRUE, alpha = 0.4) + 
+        geom_vline(mu[mu$pregnant %in% input$pregnant,], mapping = aes(xintercept = grp.mean), linetype="dashed") +
+        geom_label_repel(mu[mu$pregnant %in% input$pregnant,], mapping = aes(x = grp.mean, y= 0.2, label = paste(round(grp.mean, 3)), fill = input$pregnant), colour="white") +
+        xlim(c(-5, 10)) + 
+        theme_minimal() + 
+        ggtitle ("Delayed Testing by Pregnancy Status") + 
+        theme(plot.title = element_text(hjust = 0.5, size = 14, face = "bold")) + 
+        xlab("Number of Days") + 
+        ylab("Density") + 
+        guides(fill=guide_legend(title="Pregnancy Status")) + 
+        scale_fill_brewer(palette="Dark2")
+      
     })
+    
     
     ####
     
