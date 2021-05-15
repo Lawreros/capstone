@@ -10,6 +10,11 @@
 library(shiny)
 library(ggplot2)
 library(dplyr)
+
+library(sjPlot)
+library(sjmisc)
+library(sjlabelled)
+library(ggmosaic)
 library(tidyverse)
 library(lubridate)
 library(ggrepel)
@@ -18,6 +23,7 @@ library(sjmisc)
 library(sjlabelled)
 library(car)
 library(jtools)
+
 
 ui<- fluidPage(
     tabsetPanel(
@@ -133,18 +139,66 @@ ui<- fluidPage(
                )),
       
       tabPanel("E", fluid = TRUE,
+               headerPanel("Association between Sex, Age and Condition (Alive/Dead)"),
                sidebarLayout(
-                 sidebarPanel(),
-                 mainPanel()
-               )
+                 sidebarPanel(h3('Summary of Analysis:'),
+                              h5('In this tab, we evaluate the association between sex, age-category, and condition.'),
+                              h5('Condition was defined as dead if person was killed from COVID-19 infection.'),
+                              h5('Persons with unknown or missing sex, age, or condition were excluded from analysis.'),
+                              h5('Chi-square tests were used to test for significant associations.')
+                   ),
+                 mainPanel(h1("Association Results:"),
+                           h2('Sex Results'),
+                           h3('Fishers Exact Test:Sex and Condition'),
+                           h4('Fishers test was chosen due to chi-square test indicating approximation may be incorrect.'),
+                           h4('A fisher exact test indicates condition is significantly associated with sex (p = 0.04.)'),
+                      textOutput('sexfisher'),
+                      h3('Mosaic Plot: Sex'),
+                      plotlyOutput('sexmosaic'),
+                 h2("Age Category Results"),
+                      h3('Chi-Square Test: Age and Condition'),
+                      h4('A chi-square test indicates condition is significantly associated with age (p<0.001).'),
+                      textOutput('chisqage'),
+                      h3('Mosaic Plot: Age Category'),
+                      plotlyOutput('agemosaic')
+                 ))
+               
       ),
       
       tabPanel("F", fluid = TRUE,
                sidebarLayout(
-                 sidebarPanel(),
-                 mainPanel()
-               )
-      ),
+
+                 sidebarPanel(
+                   h3('Select Age and Sex:'),
+                   radioButtons('sex', label=h4("Select Sex"),
+                                c('female' = 'female','male'= 'male'),
+                                selected = 'female'),
+                   
+                   radioButtons("age", label=h4("Select Age"),
+                                choices = list('0-19','20-39','40-59','60-79','80+'),
+                                selected = '0-19')
+                   ),
+                 mainPanel(h2('Odds of Death Given Sex and Age'),
+                           h4('Outcome = Death'),
+                           h4('Predictors = Age-Category and Sex'),
+                           h5('Codebook:'),
+                           h5('Males = reference; Age Category 0-19 = reference'),
+                           htmlOutput('logvar'),
+                           h3('Odds Ratio Interpretations:'),
+                           h5('The odds of death for females is 0.42 times the odds of death for males, or significantly lower by 58% (p<0.01).'),
+                           h5('The odds of death increases with each increasing age category and is highest in adults over 80 years old. The odds of death in adults over 80 years old is 117.51 times the odds of death in children 0-19 years old (p<0.001).'),
+                           h3('Predicted Probability of Death Given Inputs (Age Category and Sex):'),
+                           h5('Chance of death was calculated by converting predicted log odds of death into predicted probability of death. Predicted probabilities were transformed into percentages by multiplying by 100.'),
+                           h5('Given your selected age category and sex, your percent chance of death is:'),
+                           textOutput('predict'),
+                           plotOutput('predictplot')
+                          
+                           )
+                 
+      )),
+      
+
+                 
 
       
       tabPanel("G", fluid = TRUE,
@@ -165,8 +219,25 @@ ui<- fluidPage(
       
       tabPanel("I", fluid = TRUE,
                sidebarLayout(
-                 sidebarPanel(),
-                 mainPanel()
+                 sidebarPanel(
+                   h3('Select Age Category:'),
+                   checkboxGroupInput("agetime", label=h3("Five Year Bins:"),
+                                      choices = list('0-4','5-9','10-14','15-19','20-24','25-29','30-34','35-39','40-44','45-49','50-54',
+                                                     '55-59','60-64','65-69','70-74','75-79','80-84','85-89','90-94','95-99','100-104'),
+                                      selected = '0-4'
+                                      ),
+                   checkboxGroupInput("agewide", label=h3("Twenty Year Bins:"),
+                                      choices = list('0-19','20-39','40-59','60-79','80+'),
+                                      selected = '0-19'
+                   )
+                 ),
+                 mainPanel(
+                   h2('COVID-19 Cases by Age Time Trend'),
+                   h3('Five Year Age Bins:'),
+                   plotOutput('timetrend'),
+                   h3('Twenty Year Age Bins:'),
+                   plotOutput('timetrend2')
+                 )
                )
       ),
    
@@ -177,10 +248,10 @@ ui<- fluidPage(
                  mainPanel()
                )
       )
-  )
-)
+  
+  ))
 
-
+  
 
 
 # Define server logic required to draw a histogram
@@ -478,6 +549,112 @@ server <- function(input, output) {
     
     ####
     
+
+    #### Tab E 
+    
+    
+    output$sexmosaic <- renderPlotly({
+      
+      CalwDatanew <- CalwData %>%
+        select(age, sex, condition)
+      CalwDatanew <- CalwDatanew[complete.cases(CalwDatanew),]
+    
+      mosaic_examp <-  ggplot(data = CalwDatanew) +
+        geom_mosaic(aes(x = product( condition, sex), fill = condition)) +   
+        labs(y="Condition", x="Sex", title = "Mosaic Plot: Sex and COVID-19 Condition") 
+      mosaic <- ggplotly(mosaic_examp)
+      mosaic
+    })
+    
+    output$sexfisher <- renderPrint({
+      CalwDatanew <- CalwData %>%
+        select(age, sex, condition)
+      CalwDatanew <- CalwDatanew[complete.cases(CalwDatanew),]
+      
+      results <- fisher.test(CalwDatanew$condition, CalwDatanew$sex)
+      results
+    })
+    
+    output$chisq <- renderPrint({
+      CalwDatanew <- CalwData %>%
+        select(age, sex, condition)
+      CalwDatanew <- CalwDatanew[complete.cases(CalwDatanew),]
+      CalwDatanew <- CalwDatanew %>%
+        mutate(Age_Cat = ifelse(age == '0-4' | age == '5-9' | age == '10-14' | age == '15-19', 0,
+                                ifelse(age == '20-24' | age == '25-29' | age == '30-34' | age == '35-39', 1,
+                                       ifelse(age == '40-44' | age == '45-49' | age == '50-54' | age == '55-59', 2,
+                                              ifelse(age == '60-64' | age == '65-69' | age == '70-74' | age == '75-79', 3, 4)))))
+      CalwDatanew$Age_Cat <- factor(CalwDatanew$Age_Cat,
+                                    levels = c(0,1,2,3, 4),
+                                    labels = c("0-19", "20-39", "40-59", "60-79", "80+"))
+      
+      tbl <- table(CalwDatanew$condition, CalwDatanew$sex)
+      results <- chisq.test(tbl)
+      results
+      
+    })
+    
+    output$agefisher <- renderPrint({
+      CalwDatanew <- CalwData %>%
+        select(age, sex, condition)
+      CalwDatanew <- CalwDatanew[complete.cases(CalwDatanew),]
+      
+      CalwDatanew <- CalwDatanew %>%
+        mutate(Age_Cat = ifelse(age == '0-4' | age == '5-9' | age == '10-14' | age == '15-19', 0,
+                                ifelse(age == '20-24' | age == '25-29' | age == '30-34' | age == '35-39', 1,
+                                       ifelse(age == '40-44' | age == '45-49' | age == '50-54' | age == '55-59', 2,
+                                              ifelse(age == '60-64' | age == '65-69' | age == '70-74' | age == '75-79', 3, 4)))))
+      CalwDatanew$Age_Cat <- factor(CalwDatanew$Age_Cat,
+                                  levels = c(0,1,2,3, 4),
+                                  labels = c("0-19", "20-39", "40-59", "60-79", "80+"))
+      
+      resultsage <- fisher.test(CalwDatanew$condition, CalwDatanew$Age_Cat, workspace = 400,000)
+      resultsage
+    })
+    
+    output$chisqage <- renderPrint({
+      CalwDatanew <- CalwData %>%
+      select(age, sex, condition)
+      CalwDatanew <- CalwDatanew[complete.cases(CalwDatanew),]
+      
+      CalwDatanew <- CalwDatanew %>%
+        mutate(Age_Cat = ifelse(age == '0-4' | age == '5-9' | age == '10-14' | age == '15-19', 0,
+                                ifelse(age == '20-24' | age == '25-29' | age == '30-34' | age == '35-39', 1,
+                                       ifelse(age == '40-44' | age == '45-49' | age == '50-54' | age == '55-59', 2,
+                                              ifelse(age == '60-64' | age == '65-69' | age == '70-74' | age == '75-79', 3, 4)))))
+      CalwDatanew$Age_Cat <- factor(CalwDatanew$Age_Cat,
+                                    levels = c(0,1,2,3, 4),
+                                    labels = c("0-19", "20-39", "40-59", "60-79", "80+"))
+      tbl <- table(CalwDatanew$condition, CalwDatanew$Age_Cat)
+      results <- chisq.test(tbl)
+      results
+      
+    })
+    
+    output$agemosaic <- renderPlotly({
+      CalwDatanew <- CalwData %>%
+        select(age, sex, condition)
+      CalwDatanew <- CalwDatanew[complete.cases(CalwDatanew),]
+      
+      CalwDatanew <- CalwDatanew %>%
+        mutate(Age_Cat = ifelse(age == '0-4' | age == '5-9' | age == '10-14' | age == '15-19', 0,
+                                ifelse(age == '20-24' | age == '25-29' | age == '30-34' | age == '35-39', 1,
+                                       ifelse(age == '40-44' | age == '45-49' | age == '50-54' | age == '55-59', 2,
+                                              ifelse(age == '60-64' | age == '65-69' | age == '70-74' | age == '75-79', 3, 4)))))
+      CalwDatanew$Age_Cat <- factor(CalwDatanew$Age_Cat,
+                                  levels = c(0,1,2,3, 4),
+                                  labels = c("0-19", "20-39", "40-59", "60-79", "80+"))
+      
+      mosaic_examp <-  ggplot(data = CalwDatanew) +
+        geom_mosaic(aes(x = product( condition, Age_Cat), fill = condition)) +   
+        labs(y="Condition", x="Age Category", title = "Mosaic Plot: Age and Condition") 
+      mosaic <- ggplotly(mosaic_examp)
+      mosaic
+    })
+    
+ 
+  
+  
     #### Tab "Delayed Testing - MLR"
     
     output$linear <- renderUI({
@@ -613,15 +790,90 @@ server <- function(input, output) {
     })
     
     
-    ####
+  
 
-    #### Tab E
     
  
     
     ####
     
     #### Tab F
+    
+    output$logvar <- renderUI({
+      CalwData2 <- CalwData %>%
+        mutate(Age_Cat = ifelse(age == '0-4' | age == '5-9' | age == '10-14' | age == '15-19', 0,
+                                ifelse(age == '20-24' | age == '25-29' | age == '30-34' | age == '35-39', 1,
+                                       ifelse(age == '40-44' | age == '45-49' | age == '50-54' | age == '55-59', 2,
+                                              ifelse(age == '60-64' | age == '65-69' | age == '70-74' | age == '75-79', 3, 4)))))
+      
+      CalwData2$Age_Cat <- factor(CalwData2$Age_Cat,
+                                  levels = c(0,1,2,3, 4),
+                                  labels = c("0-19", "20-39", "40-59", "60-79", "80+"))
+      
+      mylogit <- glm(condition ~ Age_Cat + sex , data = CalwData2, family = "binomial")
+      #glmresult <- broom::tidy(mylogit, conf.int = TRUE, exponentiate=TRUE)
+      tbl <- HTML(tab_model(mylogit)$knitr)
+      tbl
+      
+    })
+    
+    output$predict <- renderPrint({
+      CalwData2 <- CalwData %>%
+        mutate(Age_Cat = ifelse(age == '0-4' | age == '5-9' | age == '10-14' | age == '15-19', 0,
+                                ifelse(age == '20-24' | age == '25-29' | age == '30-34' | age == '35-39', 1,
+                                       ifelse(age == '40-44' | age == '45-49' | age == '50-54' | age == '55-59', 2,
+                                              ifelse(age == '60-64' | age == '65-69' | age == '70-74' | age == '75-79', 3, 4)))))
+      
+      CalwData2$Age_Cat <- factor(CalwData2$Age_Cat,
+                                  levels = c(0,1,2,3, 4),
+                                  labels = c("0-19", "20-39", "40-59", "60-79", "80+"))
+      
+      mylogit <- glm(condition ~ Age_Cat + sex , data = CalwData2, family = "binomial")
+    
+      newdata <- data.frame(Age_Cat = "NA",
+                            sex = "NA")
+      
+      newdata <- newdata %>%
+        mutate(Age_Cat = input$age) %>%
+        mutate(sex = input$sex)
+          
+      prob <- predict(mylogit, newdata, type="response")
+      
+       percent <- prob*100
+       percent
+       percent %>% as.numeric() 
+    })
+    
+    
+    output$predictplot <- renderPlot({
+      CalwData2 <- CalwData %>%
+        mutate(Age_Cat = ifelse(age == '0-4' | age == '5-9' | age == '10-14' | age == '15-19', 0,
+                                ifelse(age == '20-24' | age == '25-29' | age == '30-34' | age == '35-39', 1,
+                                       ifelse(age == '40-44' | age == '45-49' | age == '50-54' | age == '55-59', 2,
+                                              ifelse(age == '60-64' | age == '65-69' | age == '70-74' | age == '75-79', 3, 4)))))
+      
+      CalwData2$Age_Cat <- factor(CalwData2$Age_Cat,
+                                  levels = c(0,1,2,3, 4),
+                                  labels = c("0-19", "20-39", "40-59", "60-79", "80+"))
+      
+      mylogit <- glm(condition ~ Age_Cat, data = CalwData2, family = "binomial")
+      
+      #newdata <- data.frame(Age_Cat = "NA")
+                            
+      #newdata <- newdata %>%
+        #mutate(Age_Cat = input$age) 
+      
+      xweight <- c(0, 1, 2, 3, 4)
+      xweight <- as.factor(xweight)
+      
+      yweight <- predict(mylogit, list(Age_Cat = xweight ), type="response")
+      yweight %>% as.numeric()
+      
+      plot(CalwData2$Age_Cat, CalwData2$condition, pch = 16, xlab = "Age Category", ylab = "Condition")
+      lines(xweight, yweight)
+ 
+      
+    })
     
     ####
     
@@ -635,7 +887,47 @@ server <- function(input, output) {
     ####
     
     #### Tab I
+
+    
+    #Plot the number of reports for each age each day
+    output$timetrend <- renderPlot({
+      
+      Calwnew <- CalwData %>%
+        select(reportDate, age) %>%
+        group_by(age, reportDate) %>%
+        summarise(count = n())
+      
+      g<- ggplot(Calwnew[Calwnew$age %in% input$agetime,], aes(x =reportDate, y= count, color = age))+ geom_point() + scale_x_date() +
+        geom_smooth(method = "loess", size = 1.5) + 
+        labs(title = "Number COVID-19 Cases Over Time by Age", x = "Month", y = "Number of Cases")
+      g
    
+    })
+    
+    output$timetrend2 <- renderPlot({
+      
+      Calwnew <- CalwData %>%
+        mutate(Age_Cat = ifelse(age == '0-4' | age == '5-9' | age == '10-14' | age == '15-19', '0-19',
+                                ifelse(age == '20-24' | age == '25-29' | age == '30-34' | age == '35-39', '20-39',
+                                       ifelse(age == '40-44' | age == '45-49' | age == '50-54' | age == '55-59', '40-59',
+                                              ifelse(age == '60-64' | age == '65-69' | age == '70-74' | age == '75-79', '60-79', '80+')))))
+      
+      Calwnew <- Calwnew %>%
+        select(reportDate, Age_Cat) %>%
+        group_by(Age_Cat, reportDate) %>%
+        summarise(count = n())
+      
+
+      g<- ggplot(Calwnew[Calwnew$Age_Cat %in% input$agewide,], aes(x =reportDate, y= count, color = Age_Cat))+ geom_point() + scale_x_date() +
+        geom_smooth(method = "loess", size = 1.5) + 
+        labs(title = "Number COVID-19 Cases Over Time by Age", x = "Month", y = "Number of Cases")
+      g
+      
+    })
+    
+
+   
+
     ####
     
     #### Tab J
