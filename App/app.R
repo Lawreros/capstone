@@ -61,7 +61,7 @@ ui<- fluidPage(
                               checkboxGroupInput('traveled', label=h4("Previous Travel"),
                                            choices = list('yes', 'no'),
                                            selected = 'yes'),
-                              checkboxGroupInput('contact', label=h4("Known Contact Source"),
+                              checkboxGroupInput('contact', label=h4("Known Contact"),
                                                  choices = list('yes', 'no', 'unknown'),
                                                  selected = 'yes'), 
                               checkboxGroupInput('sex', label=h4("Sex"),
@@ -75,7 +75,7 @@ ui<- fluidPage(
                    h3("Density Curves of Delay in Testing"), 
                    p("The delayed testing variable is calculated by the number of days since symptom onset to an individual's first (positive result) test."),
                    p("Negative days of delayed testing can be explained if the individual was tested before symptom onset due to a known outbreak or contact, or vulnerable settings, such as nursing homes."),
-                   p("The density curves below show the distribution of days until testing by age, traveled status, known contact source, sex, and pregnancy status."),
+                   p("The density curves below show the distribution of days until testing by age, traveled status, known contact history, sex, and pregnancy status."),
                    p("The dashed lines indicate the mean for each selected group."),
                    p("How to use: Select criteria on the left panel and click on respective tab to view results."),
                    tabsetPanel(
@@ -92,17 +92,17 @@ ui<- fluidPage(
       tabPanel("Delayed Testing - MLR", fluid = TRUE,
                sidebarLayout(
                  sidebarPanel(h3("Select Features:"),
-                   selectInput("ages2", label=h3("Age Category"),
-                               choices = list('0-19','20-39','40-59','60-79','80+'),
-                               selected = '0-19'),
-                   selectInput("traveled", label=h3("Previous Travel"),
-                               choices = list('yes' = "yes", 'no' = "no"),
-                               selected = 'yes'),
-                   selectInput("contact", label=h3("Known Contact"),
-                               choices = list('yes' = "yes", 'no' = "no", 'unknown' = "unknown"),
-                               selected = 'yes')
+                              selectInput("ages2", label=h3("Age Category"),
+                               choices = list("0-19" = 0,"20-39" = 1,"40-59" = 2,"60-79" = 3,"80+" = 4),
+                               selected =  0 ),
+                              selectInput("traveled", label=h3("Previous Travel"),
+                               choices = list("yes" = 1 , "no" = 2),
+                               selected = 1),
+                              selectInput("contact", label=h3("Known Contact"),
+                               choices = list("yes" = 1, "no" = 2,"unknown"= 3),
+                               selected = 1)
                  ),
-                 mainPanel(h3("Predicted Delayed Testing using MLR"),
+                 mainPanel(h3("Expected Delayed Testing using MLR"),
                            tabsetPanel(
                              tabPanel("MLR Table",
                                       p("Outcome = Number of Days to take a COVID-19 test since onset of symptoms"), 
@@ -115,14 +115,14 @@ ui<- fluidPage(
                                       p("The Intercept value of 2.19 is the expected mean number of days to take a test since symptoms onset if the individual is 0-19 years old, has a known Contact, and has traveled."), 
                                       p("If someone is 60-79 years they will have tested 0.84 days later than someone who is 0-19 years old with all other variables held constant (p<0.05)."), 
                                       p("If someone is over 80 years old, they will have tested 1.1 days earlier than someone who is 0-19 years old with all other variables held constant (p<0.05)."), 
-                                      p("If someone had unknown or unsure contact history, they will have tested 0.64 days earlier than someone who tested due to a known contact source with all other variables held constant  (p<0.05)."),
+                                      p("If someone had unknown (uncertain) contact history, they will have tested 0.64 days earlier than someone who tested due to a known contact history with all other variables held constant  (p<0.05)."),
                                       p("If someone had no previous travel history, they will have tested 0.59 days later than someone who had tested with a previous travel history with all other variables held constant (p<0.05)."),
                              ),
                              tabPanel("Calculator",
                                       h4("How to Use:"), 
                                       p("Select Features for Age Category, Known Contact, and Previous Travel"),
                                       p(),
-                                      h5("Predicted number of days for this individual to take test since symptoms onset:"),
+                                      h5("Expected number of days to take test since symptoms onset:"),
                                       textOutput('linreg'))
                              
                            )
@@ -345,7 +345,7 @@ server <- function(input, output) {
       
       CalwData4 <- CalwData4[complete.cases(CalwData4),]
       
-      boxplot(CalwData4$delayed.testing~CalwData4$Age_Cat, col="skyblue", main='Days to take Test Since Symptoms by Age', xlab="Age", ylab="# of days of delayed testing")
+      boxplot(CalwData4$delayed.testing~CalwData4$Age_Cat, col="skyblue", main='Days to take Test since Symptoms Onset by Age', xlab="Age", ylab="# of days of delayed testing")
       
     })
     
@@ -397,7 +397,7 @@ server <- function(input, output) {
       
       CalwData4 <- CalwData4[complete.cases(CalwData4),]
       
-      boxplot(CalwData4$delayed.testing~CalwData4$traveled, col="skyblue", main='Days to take Test Since Symptoms by Age', xlab="Traveled", ylab="# of Days Delayed Testing")
+      boxplot(CalwData4$delayed.testing~CalwData4$traveled, col="skyblue", main='Days to take Test Since Symptoms by Previous Travel', xlab="Traveled", ylab="# of Days Delayed Testing")
       
     })
     
@@ -418,7 +418,7 @@ server <- function(input, output) {
         geom_label_repel(mu[mu$contactSourceCase %in% input$contact,], mapping = aes(x = grp.mean, y= 0.2, label = paste(round(grp.mean, 3)), fill = input$contact), colour="white") +
         xlim(c(-5, 10)) + 
         theme_minimal() + 
-        ggtitle ("Delayed Testing by Known Contact Source") + 
+        ggtitle ("Delayed Testing by Known Contact History") + 
         theme(plot.title = element_text(hjust = 0.5, size = 14, face = "bold")) + 
         xlab("Number of Days") + 
         ylab("Density") + 
@@ -564,7 +564,7 @@ server <- function(input, output) {
     ####
     
     #### Tab G
-    
+
     ####
     
     #### Tab H
