@@ -69,19 +69,19 @@ ui<- fluidPage(
                sidebarLayout(
                  sidebarPanel(p(strong("How to use: Select criteria on the left panel and click on respective tab to view results.")),
                               h4("Select by:"),
-                              checkboxGroupInput("ages2", label=h4("Age Group"),
+                              checkboxGroupInput("agekk", label=h4("Age Group"),
                                                  choices = list("0-19" = "0-19","20-39" = "20-39","40-59" = "40-59","60-79" = "60-79","80+" = "80+"),
                                                  selected = '0-19'),
-                              checkboxGroupInput('traveled', label=h4("Previous Travel"),
+                              checkboxGroupInput('traveledkk', label=h4("Previous Travel"),
                                            choices = list('yes', 'no'),
                                            selected = 'yes'),
-                              checkboxGroupInput('contact', label=h4("Known Contact"),
+                              checkboxGroupInput('contactkk', label=h4("Known Contact"),
                                                  choices = list('yes', 'no', 'unknown'),
                                                  selected = 'yes'), 
-                              checkboxGroupInput('sex', label=h4("Sex"),
+                              checkboxGroupInput('sexkk', label=h4("Sex"),
                                                  choices = list('male', 'female'),
                                                  selected = 'male'), 
-                              checkboxGroupInput('pregnant', label=h4("Pregnancy Status"),
+                              checkboxGroupInput('pregnantkk', label=h4("Pregnancy Status"),
                                                  choices = list('yes', 'no', 'unknown'),
                                                  selected = 'yes')
                 ),
@@ -526,9 +526,9 @@ server <- function(input, output) {
         ungroup()
       
       ggplot()+
-        geom_density(CalwData2[CalwData2$Age_Cat %in% input$ages2,], mapping = aes(delayed.testing, fill = Age_Cat), alpha=0.4) +
-        geom_vline(mu[mu$Age_Cat %in% input$ages2,], mapping = aes(xintercept = grp.mean), linetype="dashed") +
-        geom_label_repel(mu[mu$Age_Cat %in% input$ages2,], mapping = aes(x = grp.mean, y= 0.2, label = paste(round(grp.mean, 3)), fill = input$ages2), colour="white") +
+        geom_density(CalwData2[CalwData2$Age_Cat %in% input$agekk,], mapping = aes(delayed.testing, fill = Age_Cat), alpha=0.4) +
+        geom_vline(mu[mu$Age_Cat %in% input$agekk,], mapping = aes(xintercept = grp.mean), linetype="dashed") +
+        geom_label_repel(mu[mu$Age_Cat %in% input$agekk,], mapping = aes(x = grp.mean, y= 0.2, label = paste(round(grp.mean, 3)), fill = input$agekk), colour="white") +
         xlim(c(-10, 14)) + 
         theme_minimal() + 
         ggtitle ("Delayed Testing by Age") + 
@@ -577,16 +577,16 @@ server <- function(input, output) {
       
       
       ggplot()+
-        geom_density(CalwData2[CalwData2$traveled %in% input$traveled,], mapping = aes(delayed.testing, fill = traveled), na.rm = TRUE, alpha=0.4) + 
-        geom_vline(mu[mu$traveled %in% input$traveled,], mapping = aes(xintercept = grp.mean), linetype="dashed") +
-        geom_label_repel(mu[mu$traveled %in% input$traveled,], mapping = aes(x = grp.mean, y= 0.2, label = paste(round(grp.mean, 3)), fill = input$traveled), colour="white") +
+        geom_density(CalwData2[CalwData2$traveled %in% input$traveledkk,], mapping = aes(delayed.testing, fill = traveled), na.rm = TRUE, alpha=0.4) + 
+        geom_vline(mu[mu$traveled %in% input$traveledkk,], mapping = aes(xintercept = grp.mean), linetype="dashed") +
+        geom_label_repel(mu[mu$traveled %in% input$traveledkk,], mapping = aes(x = grp.mean, y= 0.2, label = paste(round(grp.mean, 3)), fill = input$traveledkk), colour="white") +
         xlim(c(-5, 10))+ 
         theme_minimal() + 
-        ggtitle ("Delayed Testing by Pregnancy Status") + 
+        ggtitle ("Delayed Testing by Travel History") + 
         theme(plot.title = element_text(hjust = 0.5, size = 14, face = "bold")) + 
         xlab("Number of Days") + 
         ylab("Density") + 
-        guides(fill=guide_legend(title="Pregnancy Status")) + 
+        guides(fill=guide_legend(title="Travel History")) + 
         scale_fill_brewer(palette="Dark2")
       
     })
@@ -627,9 +627,9 @@ server <- function(input, output) {
         ungroup()
       
       ggplot() + 
-        geom_density(CalwData2[CalwData2$contactSourceCase %in% input$contact,], mapping = aes(delayed.testing, fill = contactSourceCase), na.rm = TRUE, alpha=0.4) + 
-        geom_vline(mu[mu$contactSourceCase %in% input$contact,], mapping = aes(xintercept = grp.mean), linetype="dashed") +
-        geom_label_repel(mu[mu$contactSourceCase %in% input$contact,], mapping = aes(x = grp.mean, y= 0.2, label = paste(round(grp.mean, 3)), fill = input$contact), colour="white") +
+        geom_density(CalwData2[CalwData2$contactSourceCase %in% input$contactkk,], mapping = aes(delayed.testing, fill = contactSourceCase), na.rm = TRUE, alpha=0.4) + 
+        geom_vline(mu[mu$contactSourceCase %in% input$contactkk,], mapping = aes(xintercept = grp.mean), linetype="dashed") +
+        geom_label_repel(mu[mu$contactSourceCase %in% input$contactkk,], mapping = aes(x = grp.mean, y= 0.2, label = paste(round(grp.mean, 3)), fill = input$contactkk), colour="white") +
         xlim(c(-5, 10)) + 
         theme_minimal() + 
         ggtitle ("Delayed Testing by Known Contact History") + 
@@ -676,9 +676,9 @@ server <- function(input, output) {
         ungroup()
       
       ggplot() + 
-        geom_density(CalwData2[CalwData2$sex %in% input$sex,], mapping = aes(delayed.testing, fill = sex), na.rm = TRUE, alpha = 0.4) + 
-        geom_vline(mu[mu$sex %in% input$sex,], mapping = aes(xintercept = grp.mean), linetype="dashed") +
-        geom_label_repel(mu[mu$sex %in% input$sex,], mapping = aes(x = grp.mean, y= 0.2, label = paste(round(grp.mean, 3)), fill = input$sex), colour="white") +
+        geom_density(CalwData2[CalwData2$sex %in% input$sexkk,], mapping = aes(delayed.testing, fill = sex), na.rm = TRUE, alpha = 0.4) + 
+        geom_vline(mu[mu$sex %in% input$sexkk,], mapping = aes(xintercept = grp.mean), linetype="dashed") +
+        geom_label_repel(mu[mu$sex %in% input$sexkk,], mapping = aes(x = grp.mean, y= 0.2, label = paste(round(grp.mean, 3)), fill = input$sexkk), colour="white") +
         xlim(c(-5, 10)) + 
         theme_minimal() + 
         ggtitle ("Delayed Testing by Sex") + 
@@ -727,9 +727,9 @@ server <- function(input, output) {
       
       
       ggplot() + 
-        geom_density(CalwData2[CalwData2$pregnant %in% input$pregnant,], mapping = aes(delayed.testing, fill = pregnant), na.rm = TRUE, alpha = 0.4) + 
-        geom_vline(mu[mu$pregnant %in% input$pregnant,], mapping = aes(xintercept = grp.mean), linetype="dashed") +
-        geom_label_repel(mu[mu$pregnant %in% input$pregnant,], mapping = aes(x = grp.mean, y= 0.2, label = paste(round(grp.mean, 3)), fill = input$pregnant), colour="white") +
+        geom_density(CalwData2[CalwData2$pregnant %in% input$pregnantkk,], mapping = aes(delayed.testing, fill = pregnant), na.rm = TRUE, alpha = 0.4) + 
+        geom_vline(mu[mu$pregnant %in% input$pregnantkk,], mapping = aes(xintercept = grp.mean), linetype="dashed") +
+        geom_label_repel(mu[mu$pregnant %in% input$pregnantkk,], mapping = aes(x = grp.mean, y= 0.2, label = paste(round(grp.mean, 3)), fill = input$pregnantkk), colour="white") +
         xlim(c(-5, 10)) + 
         theme_minimal() + 
         ggtitle ("Delayed Testing by Pregnancy Status") + 
