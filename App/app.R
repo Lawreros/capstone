@@ -17,6 +17,7 @@ library(sjPlot)
 library(sjmisc)
 library(sjlabelled)
 library(car)
+library(jtools)
 
 ui<- fluidPage(
     tabsetPanel(
