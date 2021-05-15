@@ -11,6 +11,9 @@ library(shiny)
 library(plotly)
 library(ggplot2)
 library(dplyr)
+library(tidyr)
+library(leaflet)
+library(geojsonR)
 
 ui<- fluidPage(
     tabsetPanel(
@@ -30,6 +33,14 @@ ui<- fluidPage(
                  mainPanel(
                    plotOutput('cattable'),
                    plotOutput('agetime')
+                 )
+               )
+      ),
+      tabPanel("A", fluid = TRUE,
+               sidebarLayout(
+                 sidebarPanel(),
+                 mainPanel(
+                   plotOutput('covid_map')
                  )
                )
       ),
@@ -135,6 +146,28 @@ server <- function(input, output) {
     
     ####
     
+    
+    #### Tab A
+    
+    dat <- read.csv('../7di-rl-by-ags.csv')
+    dat$time_iso8601 <- as.Date(dat$time_iso8601,"%Y-%m-%dT")
+    pal <- colorNumeric("viridis", NULL)
+    nycounties <- rgdal::readOGR("../DE-counties.geojson")
+    
+    #nycounties <- FROM_GeoJson("../DE-counties.geojson")
+    
+    output$covid_map <- renderPlot({
+      m <- leaflet(nycounties)
+      m %>% addTiles() %>% addPolygons(stroke = FALSE, smoothFactor = 0.3, fillOpacity = 0.7,
+                  fillColor = ~pal(log10(unlist(dat[10,-1],use.names = FALSE)+1)),
+                  label = ~paste0(GEN, ": ", formatC(unlist(dat[10,],use.names = FALSE)+1, big.mark = ","))) %>%
+      addLegend(pal = pal, title='new cases per 1000 in last 7 days',values = ~log10(unlist(dat[10,],use.names = FALSE)+1), opacity = 1.0,
+                labFormat = labelFormat(transform = function(x) round(10^x)))
+      m
+    })
+    
+    
+    ####
     
     
     #### Symptom composition based on variant
