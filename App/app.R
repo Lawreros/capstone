@@ -47,7 +47,9 @@ ui<- fluidPage(
                                timeFormat="%Y-%m-%d")
                  ),
                  mainPanel(
-                   leafletOutput('covid_map')
+                   leafletOutput('covid_map'),
+                   textOutput('testthis'),
+                   plotOutput('countytime')
                  )
                )
       ),
@@ -55,7 +57,9 @@ ui<- fluidPage(
       
       tabPanel("B", fluid = TRUE,
                sidebarLayout(
-                 sidebarPanel(),
+                 sidebarPanel(
+                   
+                 ),
                  mainPanel()
                )
       ),
@@ -155,19 +159,35 @@ server <- function(input, output) {
     
     
     #### Tab A
-    
     dat <- read.csv('../7di-rl-by-ags.csv')
     dat$time_iso8601 <- as.Date(dat$time_iso8601,"%Y-%m-%dT")
     pal <- colorNumeric("viridis", NULL)
     nycounties <- rgdal::readOGR("../DE-counties.geojson")
     
-    output$covid_map <- renderLeaflet({leaflet(nycounties)%>% addTiles() %>% addPolygons(stroke = FALSE, smoothFactor = 0.3, fillOpacity = 0.7,
-                  fillColor = ~pal(log10(unlist(dat[dat$time_iso8601 == input$map_date,-1],use.names = FALSE)+1)),
-                  label = ~paste0(GEN, ": ", formatC(unlist(dat[dat$time_iso8601 == input$map_date,-1],use.names = FALSE)+1, big.mark = ","))) %>%
-      addLegend(pal = pal, title='new cases per 1000 in last 7 days',values = ~log10(unlist(dat[dat$time_iso8601 == input$map_date,-1],use.names = FALSE)+1), opacity = 1.0,
-                labFormat = labelFormat(transform = function(x) round(10^x)))
-    })
+    output$covid_map <- renderLeaflet({leaflet(nycounties)%>%
+                          addTiles()%>%
+                          addPolygons(stroke = FALSE, smoothFactor = 0.3, fillOpacity = 0.7,
+                              fillColor = ~pal(log10(unlist(dat[dat$time_iso8601 == input$map_date,-1],use.names = FALSE)+1)),
+                              label = ~paste0(GEN, ": ", formatC(unlist(dat[dat$time_iso8601 == input$map_date,-1],use.names = FALSE)+1, big.mark = ",")),layerId = seq.int(1,431)) %>%
+                          addLegend(pal = pal, title='new cases per 1000 in last 7 days',values = ~log10(unlist(dat[dat$time_iso8601 == input$map_date,-1],use.names = FALSE)+1), opacity = 1.0,
+                              labFormat = labelFormat(transform = function(x) round(10^x)))
+    }) #, layerId = nycounties@data$GEN
     
+    observeEvent(input$covid_map_shape_click, { # update the location selectInput on map clicks
+      p <- input$covid_map_shape_click
+      #if(!is.null(p$id)){
+      #  if(is.null(input$Business) || input$Business!=p$id) updateSelectInput(session, "Business", selected=p$id)
+      #}
+      #print(p)
+      output$testthis <- renderText(p$id)
+      
+      output$countytime <- renderPlot({
+        ggplot(dat, aes(dat[,1], dat[,p$id])) + 
+          geom_point()
+        #dat[,c(1,p$id)]
+      })
+      
+    })
     
     ####
     
