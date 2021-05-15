@@ -216,6 +216,7 @@ ui<- fluidPage(
                          ),
                          
                          
+                         
                          br(),
                          br(),
                         plotlyOutput('fischer')
