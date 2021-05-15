@@ -115,9 +115,12 @@ ui<- fluidPage(
                                       p("The Intercept value of 2.19 is the expected mean number of days to take a test since symptoms onset if the individual is 0-19 years old, has a known Contact, and has traveled."), 
                                       p("If someone is 60-79 years they will have tested 0.84 days later than someone who is 0-19 years old with all other variables held constant (p<0.05)."), 
                                       p("If someone is over 80 years old, they will have tested 1.1 days earlier than someone who is 0-19 years old with all other variables held constant (p<0.05)."), 
+                                      plotOutput('linregplot1'), 
                                       p("If someone had unknown (uncertain) contact history, they will have tested 0.64 days earlier than someone who tested due to a known contact history with all other variables held constant  (p<0.05)."),
+                                      plotOutput('linregplot2'),
                                       p("If someone had no previous travel history, they will have tested 0.59 days later than someone who had tested with a previous travel history with all other variables held constant (p<0.05)."),
-                             ),
+                                      plotOutput('linregplot3')
+                                       ),
                              tabPanel("Calculator",
                                       h4("How to Use:"), 
                                       p("Select Features for Age Category, Known Contact, and Previous Travel"),
@@ -278,12 +281,85 @@ server <- function(input, output) {
       
       prob <- predict(linear.reg, mydf)
       paste(round(prob,2), " days")
-     
+    
       
     })
     
     
- 
+    output$linregplot1 <-renderPlot({
+      CalwData4 <- 
+        CalwData %>% 
+        mutate(delayed.testing = ymd(indexcase)- symptoms.onsetDate) %>%
+        select(c(delayed.testing, age, pregnant, traveled, contactSourceCase, sex)) %>%
+        
+        mutate(Age_Cat = ifelse(age == '0-4' | age == '5-9' | age == '10-14' | age == '15-19', 1,
+                                ifelse(age == '20-24' | age == '25-29' | age == '30-34' | age == '35-39', 2,
+                                       ifelse(age == '40-44' | age == '45-49' | age == '50-54' | age == '55-59', 3,
+                                              ifelse(age == '60-64' | age == '65-69' | age == '70-74' | age == '75-79', 4, 5))))) %>% 
+        select(-age) 
+      
+      CalwData4 <- CalwData4[complete.cases(CalwData4),]
+      
+      CalwData4$delayed.testing <- as.numeric(CalwData4$delayed.testing)
+      CalwData4$Age_Cat <- factor(CalwData4$Age_Cat,
+                                  levels = c(1,2,3, 4, 5),
+                                  labels = c("0-19", "20-39", "40-59", "60-79", "80+"))
+      
+      
+      linear.reg =lm(formula = delayed.testing ~ Age_Cat + contactSourceCase +  traveled, data = CalwData4)
+      effect_plot(linear.reg, pred=Age_Cat,x.label = "Age", y.label = "# of days to test", interval = TRUE)
+      
+    })
+    
+    output$linregplot2 <-renderPlot({
+      CalwData4 <- 
+        CalwData %>% 
+        mutate(delayed.testing = ymd(indexcase)- symptoms.onsetDate) %>%
+        select(c(delayed.testing, age, pregnant, traveled, contactSourceCase, sex)) %>%
+        
+        mutate(Age_Cat = ifelse(age == '0-4' | age == '5-9' | age == '10-14' | age == '15-19', 1,
+                                ifelse(age == '20-24' | age == '25-29' | age == '30-34' | age == '35-39', 2,
+                                       ifelse(age == '40-44' | age == '45-49' | age == '50-54' | age == '55-59', 3,
+                                              ifelse(age == '60-64' | age == '65-69' | age == '70-74' | age == '75-79', 4, 5))))) %>% 
+        select(-age) 
+      
+      CalwData4 <- CalwData4[complete.cases(CalwData4),]
+      
+      CalwData4$delayed.testing <- as.numeric(CalwData4$delayed.testing)
+      CalwData4$Age_Cat <- factor(CalwData4$Age_Cat,
+                                  levels = c(1,2,3, 4, 5),
+                                  labels = c("0-19", "20-39", "40-59", "60-79", "80+"))
+      
+      
+      linear.reg =lm(formula = delayed.testing ~ Age_Cat + contactSourceCase +  traveled, data = CalwData4)
+      effect_plot(linear.reg, pred= contactSourceCase, x.label = "Contact History", y.label = "# of days to test", interval = TRUE)
+      
+    })
+    
+    output$linregplot3 <-renderPlot({
+      CalwData4 <- 
+        CalwData %>% 
+        mutate(delayed.testing = ymd(indexcase)- symptoms.onsetDate) %>%
+        select(c(delayed.testing, age, pregnant, traveled, contactSourceCase, sex)) %>%
+        
+        mutate(Age_Cat = ifelse(age == '0-4' | age == '5-9' | age == '10-14' | age == '15-19', 1,
+                                ifelse(age == '20-24' | age == '25-29' | age == '30-34' | age == '35-39', 2,
+                                       ifelse(age == '40-44' | age == '45-49' | age == '50-54' | age == '55-59', 3,
+                                              ifelse(age == '60-64' | age == '65-69' | age == '70-74' | age == '75-79', 4, 5))))) %>% 
+        select(-age) 
+      
+      CalwData4 <- CalwData4[complete.cases(CalwData4),]
+      
+      CalwData4$delayed.testing <- as.numeric(CalwData4$delayed.testing)
+      CalwData4$Age_Cat <- factor(CalwData4$Age_Cat,
+                                  levels = c(1,2,3, 4, 5),
+                                  labels = c("0-19", "20-39", "40-59", "60-79", "80+"))
+      
+      
+      linear.reg =lm(formula = delayed.testing ~ Age_Cat + contactSourceCase +  traveled, data = CalwData4)
+      effect_plot(linear.reg, pred=traveled, x.label = "Travel History", y.label = "# of days to test", interval = TRUE)
+      
+    })
     
     
     ####
@@ -556,6 +632,7 @@ server <- function(input, output) {
     
     #### Tab E
     
+ 
     
     ####
     
@@ -565,6 +642,7 @@ server <- function(input, output) {
     
     #### Tab G
 
+    
     ####
     
     #### Tab H
