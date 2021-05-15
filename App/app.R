@@ -178,11 +178,11 @@ ui<- fluidPage(
                sidebarLayout(
                  sidebarPanel(
                    h3('Select Age and Sex:'),
-                   radioButtons('sex', label=h4("Select Sex"),
+                   radioButtons('sexln', label=h4("Select Sex"),
                                 c('female' = 'female','male'= 'male'),
                                 selected = 'female'),
                    
-                   radioButtons("age", label=h4("Select Age"),
+                   radioButtons("ageln", label=h4("Select Age"),
                                 choices = list('0-19','20-39','40-59','60-79','80+'),
                                 selected = '0-19')
                    ),
@@ -427,12 +427,12 @@ ui<- fluidPage(
                sidebarLayout(
                  sidebarPanel(
                    h3('Select Age Category:'),
-                   checkboxGroupInput("agetime", label=h3("Five Year Bins:"),
+                   checkboxGroupInput("agetimeln", label=h3("Five Year Bins:"),
                                       choices = list('0-4','5-9','10-14','15-19','20-24','25-29','30-34','35-39','40-44','45-49','50-54',
                                                      '55-59','60-64','65-69','70-74','75-79','80-84','85-89','90-94','95-99','100-104'),
                                       selected = '0-4'
                                       ),
-                   checkboxGroupInput("agewide", label=h3("Twenty Year Bins:"),
+                   checkboxGroupInput("agewideln", label=h3("Twenty Year Bins:"),
                                       choices = list('0-19','20-39','40-59','60-79','80+'),
                                       selected = '0-19'
                    )
@@ -1053,8 +1053,8 @@ server <- function(input, output) {
                             sex = "NA")
       
       newdata <- newdata %>%
-        mutate(Age_Cat = input$age) %>%
-        mutate(sex = input$sex)
+        mutate(Age_Cat = input$ageln) %>%
+        mutate(sex = input$sexln)
           
       prob <- predict(mylogit, newdata, type="response")
       
@@ -1468,7 +1468,7 @@ server <- function(input, output) {
         group_by(age, reportDate) %>%
         summarise(count = n())
       
-      g<- ggplot(Calwnew[Calwnew$age %in% input$agetime,], aes(x =reportDate, y= count, color = age))+ geom_point() + scale_x_date() +
+      g<- ggplot(Calwnew[Calwnew$age %in% input$agetimeln,], aes(x =reportDate, y= count, color = age))+ geom_point() + scale_x_date() +
         geom_smooth(method = "loess", size = 1.5) + 
         labs(title = "Number COVID-19 Cases Over Time by Age", x = "Month", y = "Number of Cases")
       g
@@ -1489,7 +1489,7 @@ server <- function(input, output) {
         summarise(count = n())
       
 
-      g<- ggplot(Calwnew[Calwnew$Age_Cat %in% input$agewide,], aes(x =reportDate, y= count, color = Age_Cat))+ geom_point() + scale_x_date() +
+      g<- ggplot(Calwnew[Calwnew$Age_Cat %in% input$agewideln,], aes(x =reportDate, y= count, color = Age_Cat))+ geom_point() + scale_x_date() +
         geom_smooth(method = "loess", size = 1.5) + 
         labs(title = "Number COVID-19 Cases Over Time by Age", x = "Month", y = "Number of Cases")
       g
