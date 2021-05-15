@@ -8,12 +8,15 @@
 #
 
 library(shiny)
-library(plotly)
 library(ggplot2)
 library(dplyr)
-library(plyr)
 library(tidyverse)
 library(lubridate)
+library(ggrepel)
+library(sjPlot)
+library(sjmisc)
+library(sjlabelled)
+library(car)
 
 ui<- fluidPage(
     tabsetPanel(
@@ -46,15 +49,9 @@ ui<- fluidPage(
       ),
       
       
-      tabPanel("C", fluid = TRUE,
-               sidebarLayout(
-                 sidebarPanel(),
-                 mainPanel()
-               )
-      ),
+  
       
-      
-        tabPanel("Delayed Testing", fluid = TRUE,
+      tabPanel("Delayed Testing - Descriptive", fluid = TRUE,
                
                sidebarLayout(
                  sidebarPanel(h3("Select by:"), 
@@ -82,16 +79,54 @@ ui<- fluidPage(
                    p("The dashed lines indicate the mean for each selected group."),
                    p("How to use: Select criteria on the left panel and click on respective tab to view results."),
                    tabsetPanel(
-                   tabPanel("By Age", plotOutput('delayed')),
-                   tabPanel("Previous Travel", plotOutput('delayed1')),
-                   tabPanel("Known Contact", plotOutput('delayed2')),
-                   tabPanel("By Sex", plotOutput('delayed3')), 
-                   tabPanel("Pregnant or Not", plotOutput('delayed4'))
+                   tabPanel("By Age", plotOutput('delayed'), h4("Boxplot Analysis"), plotOutput('boxplot')),
+                   tabPanel("Previous Travel", plotOutput('delayed1'), h4("Boxplot Analysis"), plotOutput('boxplot1')),
+                   tabPanel("Known Contact", plotOutput('delayed2'), h4("Boxplot Analysis"), plotOutput('boxplot2')),
+                   tabPanel("By Sex", plotOutput('delayed3'), h4("Boxplot Analysis"), plotOutput('boxplot3')), 
+                   tabPanel("Pregnant or Not", plotOutput('delayed4'),h4("Boxplot Analysis"), plotOutput('boxplot4'))
                  )
                  )
                )
       ),
       
+      tabPanel("Delayed Testing - MLR", fluid = TRUE,
+               sidebarLayout(
+                 sidebarPanel(h3("Select Features:"),
+                   selectInput("ages2", label=h3("Age Category"),
+                               choices = list('0-19','20-39','40-59','60-79','80+'),
+                               selected = '0-19'),
+                   selectInput("traveled", label=h3("Previous Travel"),
+                               choices = list('yes' = "yes", 'no' = "no"),
+                               selected = 'yes'),
+                   selectInput("contact", label=h3("Known Contact"),
+                               choices = list('yes' = "yes", 'no' = "no", 'unknown' = "unknown"),
+                               selected = 'yes')
+                 ),
+                 mainPanel(h3("Predicted Delayed Testing using MLR"),
+                           tabsetPanel(
+                             tabPanel("MLR Table",
+                                      p("Outcome = Number of Days to take a COVID-19 test since onset of symptoms"), 
+                                      p("Codebook: "), 
+                                      p("Age Category 0-19 = Reference"),
+                                      p("Known Contact = Reference"),
+                                      p("Traveled (yes) = Reference"), 
+                                      htmlOutput('linear')), 
+                                      h5("MLR interpretations"),
+                                      p("The Intercept value of 2.19 is the expected mean number of days to take a test since symptoms onset if the individual is 0-19 years old, has a known Contact, and has traveled."), 
+                                      p("If someone is 60-79 years they will have tested 0.84 days later than someone who is 0-19 years old with all other variables held constant (p<0.05)."), 
+                                      p("If someone is over 80 years old, they will have tested 1.1 days earlier than someone who is 0-19 years old with all other variables held constant (p<0.05)."), 
+                                      p("If someone had unknown or unsure contact history, they will have tested 0.64 days earlier than someone who tested due to a known contact source with all other variables held constant  (p<0.05)."),
+                                      p("If someone had no previous travel history, they will have tested 0.59 days later than someone who had tested with a previous travel history with all other variables held constant (p<0.05)."),
+                             tabPanel("Calculator",
+                                      h4("How to Use:"), 
+                                      p("Select Features for Age Category, Known Contact, and Previous Travel"),
+                                      p(),
+                                      h5("Predicted number of days for this individual to take test since symptoms onset:"),
+                                      textOutput('linreg'))
+                             
+                           )
+                 )
+               )),
       
       tabPanel("E", fluid = TRUE,
                sidebarLayout(
@@ -100,14 +135,13 @@ ui<- fluidPage(
                )
       ),
       
-      
       tabPanel("F", fluid = TRUE,
                sidebarLayout(
                  sidebarPanel(),
                  mainPanel()
                )
       ),
-      
+
       
       tabPanel("G", fluid = TRUE,
                sidebarLayout(
@@ -115,6 +149,7 @@ ui<- fluidPage(
                  mainPanel()
                )
       ),
+      
       
       
       tabPanel("H", fluid = TRUE,
@@ -127,8 +162,22 @@ ui<- fluidPage(
       
       tabPanel("I", fluid = TRUE,
                sidebarLayout(
-                 sidebarPanel(),
-                 mainPanel()
+                 sidebarPanel(
+                   h3('Select Age Category:'),
+                   checkboxGroupInput("agetime", label=h3("Five Year Bins:"),
+                                      choices = list('0-4','5-9','10-14','15-19','20-24','25-29','30-34','35-39','40-44','45-49','50-54',
+                                                     '55-59','60-64','65-69','70-74','75-79','80-84','85-89','90-94','95-99','100-104'),
+                                      selected = '0-4'
+                   ),
+                   checkboxGroupInput("agewide", label=h3("Twenty Year Bins:"),
+                                      choices = list('0-19','20-39','40-59','60-79','80+'),
+                                      selected = '0-19'
+                   )
+                 ),
+                 mainPanel(
+                   h2('COVID-19 Cases over Time (Dec 2020 - April 2021'),
+                   plotOutput('timetrend')
+                 )
                )
       ),
       
@@ -151,8 +200,7 @@ server <- function(input, output) {
     load('../CalwData.RData')
     #Convert reportDate from string to actual date factor
     CalwData$reportDate <- as.Date(CalwData$reportDate, "%Y-%m-%d")
-    
-    
+
     
     #### Tab "Data Summary"
     
@@ -175,13 +223,73 @@ server <- function(input, output) {
     
     ####
     
-    #### Tab C
+    #### Tab "Delayed Testing - MLR"
+    
+    output$linear <- renderUI({
+      CalwData4 <- 
+        CalwData %>% 
+        mutate(delayed.testing = ymd(indexcase)- symptoms.onsetDate) %>%
+        select(c(delayed.testing, age, pregnant, traveled, contactSourceCase, sex)) %>% 
+        
+        mutate(Age_Cat = ifelse(age == '0-4' | age == '5-9' | age == '10-14' | age == '15-19', 1,
+                                ifelse(age == '20-24' | age == '25-29' | age == '30-34' | age == '35-39', 2,
+                                       ifelse(age == '40-44' | age == '45-49' | age == '50-54' | age == '55-59', 3,
+                                              ifelse(age == '60-64' | age == '65-69' | age == '70-74' | age == '75-79', 4, 5))))) %>% 
+        select(-age) 
+      
+      CalwData4 <- CalwData4[complete.cases(CalwData4),]
+      
+      CalwData4$delayed.testing <- as.numeric(CalwData4$delayed.testing)
+      CalwData4$Age_Cat <- factor(CalwData4$Age_Cat,
+                                  levels = c(1,2,3, 4, 5),
+                                  labels = c("0-19", "20-39", "40-59", "60-79", "80+"))
+      
+      
+      linear.reg =lm(formula = delayed.testing ~ Age_Cat + contactSourceCase +  traveled, data = CalwData4)
+      tbl <- HTML(tab_model(linear.reg, pred.labels = c("Intercept", "20-39 Years (Age_Cat)", "40-59 Years (Age_Cat)", "60-79 Years (Age_Cat)", "80+ Years (Age_Cat)", "No Contact", "Unknown Contact", "No Travel"), dv.labels = "Days to Test since Symptom Onset")$knitr)
+      tbl
+      
+    })
+    output$linreg <- renderText({
+      
+      CalwData4 <- 
+        CalwData %>% 
+        mutate(delayed.testing = ymd(indexcase)- symptoms.onsetDate) %>%
+        select(c(delayed.testing, age, pregnant, traveled, contactSourceCase, sex)) %>%
+        
+        mutate(Age_Cat = ifelse(age == '0-4' | age == '5-9' | age == '10-14' | age == '15-19', 1,
+                                ifelse(age == '20-24' | age == '25-29' | age == '30-34' | age == '35-39', 2,
+                                       ifelse(age == '40-44' | age == '45-49' | age == '50-54' | age == '55-59', 3,
+                                              ifelse(age == '60-64' | age == '65-69' | age == '70-74' | age == '75-79', 4, 5))))) %>% 
+        select(-age) 
+      
+      CalwData4 <- CalwData4[complete.cases(CalwData4),]
+      
+      CalwData4$delayed.testing <- as.numeric(CalwData4$delayed.testing)
+      CalwData4$Age_Cat <- factor(CalwData4$Age_Cat,
+                                  levels = c(1,2,3, 4, 5),
+                                  labels = c("0-19", "20-39", "40-59", "60-79", "80+"))
+    
+    
+      linear.reg =lm(formula = delayed.testing ~ Age_Cat + contactSourceCase +  traveled, data = CalwData4)
+      
+      mydf <- data.frame(Age_Cat = input$ages2, traveled = input$traveled, contactSourceCase = input$contact)
+      
+      prob <- predict(linear.reg, mydf)
+      paste(round(prob,2), " days")
+     
+      
+    })
+    
+    
+ 
+    
     
     ####
     
-    #### Tab "Delayed Testing" 
-    
-  # Bar chart for delayed days
+    #### Tab "Delayed Testing - Density Curves" 
+  
+    # Bar chart for delayed days
     
     output$delayed <- renderPlot({
       CalwData2 <- 
@@ -216,6 +324,29 @@ server <- function(input, output) {
         scale_fill_brewer(palette="Dark2")
       
     })
+    output$boxplot <- renderPlot({
+      CalwData4 <- 
+        CalwData %>% 
+        mutate(delayed.testing = ymd(indexcase)- symptoms.onsetDate) %>%
+        select(c(delayed.testing, age, pregnant, traveled, contactSourceCase, sex)) %>% 
+        
+        mutate(Age_Cat = ifelse(age == '0-4' | age == '5-9' | age == '10-14' | age == '15-19', 1,
+                                ifelse(age == '20-24' | age == '25-29' | age == '30-34' | age == '35-39', 2,
+                                       ifelse(age == '40-44' | age == '45-49' | age == '50-54' | age == '55-59', 3,
+                                              ifelse(age == '60-64' | age == '65-69' | age == '70-74' | age == '75-79', 4, 5))))) %>% 
+        select(-age)
+      
+      
+      CalwData4$delayed.testing <- as.numeric(CalwData4$delayed.testing)
+      CalwData4$Age_Cat <- factor(CalwData4$Age_Cat,
+                                  levels = c(1,2,3,4, 5),
+                                  labels = c("0-19", "20-39", "40-59", "60-79", "80+"))
+      
+      CalwData4 <- CalwData4[complete.cases(CalwData4),]
+      
+      boxplot(CalwData4$delayed.testing~CalwData4$Age_Cat, col="skyblue", main='Days to take Test Since Symptoms by Age', xlab="Age", ylab="# of days of delayed testing")
+      
+    })
     
     output$delayed1 <- renderPlot({
 
@@ -245,6 +376,31 @@ server <- function(input, output) {
      
     })
     
+    output$boxplot1 <- renderPlot({
+      CalwData4 <- 
+        CalwData %>% 
+        mutate(delayed.testing = ymd(indexcase)- symptoms.onsetDate) %>%
+        select(c(delayed.testing, age, pregnant, traveled, contactSourceCase, sex)) %>% 
+        
+        mutate(Age_Cat = ifelse(age == '0-4' | age == '5-9' | age == '10-14' | age == '15-19', 1,
+                                ifelse(age == '20-24' | age == '25-29' | age == '30-34' | age == '35-39', 2,
+                                       ifelse(age == '40-44' | age == '45-49' | age == '50-54' | age == '55-59', 3,
+                                              ifelse(age == '60-64' | age == '65-69' | age == '70-74' | age == '75-79', 4, 5))))) %>% 
+        select(-age)
+      
+      
+      CalwData4$delayed.testing <- as.numeric(CalwData4$delayed.testing)
+      CalwData4$Age_Cat <- factor(CalwData4$Age_Cat,
+                                  levels = c(1,2,3,4, 5),
+                                  labels = c("0-19", "20-39", "40-59", "60-79", "80+"))
+      
+      CalwData4 <- CalwData4[complete.cases(CalwData4),]
+      
+      boxplot(CalwData4$delayed.testing~CalwData4$traveled, col="skyblue", main='Days to take Test Since Symptoms by Age', xlab="Traveled", ylab="# of Days Delayed Testing")
+      
+    })
+    
+    
     output$delayed2 <- renderPlot({
       CalwData2 <- 
         CalwData %>% 
@@ -270,6 +426,30 @@ server <- function(input, output) {
         
     })
     
+   
+    output$boxplot2 <- renderPlot({
+      CalwData4 <- 
+        CalwData %>% 
+        mutate(delayed.testing = ymd(indexcase)- symptoms.onsetDate) %>%
+        select(c(delayed.testing, age, pregnant, traveled, contactSourceCase, sex)) %>% 
+        
+        mutate(Age_Cat = ifelse(age == '0-4' | age == '5-9' | age == '10-14' | age == '15-19', 1,
+                                ifelse(age == '20-24' | age == '25-29' | age == '30-34' | age == '35-39', 2,
+                                       ifelse(age == '40-44' | age == '45-49' | age == '50-54' | age == '55-59', 3,
+                                              ifelse(age == '60-64' | age == '65-69' | age == '70-74' | age == '75-79', 4, 5))))) %>% 
+        select(-age)
+      
+      
+      CalwData4$delayed.testing <- as.numeric(CalwData4$delayed.testing)
+      CalwData4$Age_Cat <- factor(CalwData4$Age_Cat,
+                                  levels = c(1,2,3,4, 5),
+                                  labels = c("0-19", "20-39", "40-59", "60-79", "80+"))
+      
+      CalwData4 <- CalwData4[complete.cases(CalwData4),]
+      
+      boxplot(CalwData4$delayed.testing~CalwData4$contactSourceCase, col="skyblue", main='Delayed Testing by Known Contact', xlab="Known Contact", ylab="# of Days Delayed Testing")
+      
+    })
     output$delayed3 <- renderPlot({
       CalwData2 <- 
         CalwData %>% 
@@ -296,6 +476,29 @@ server <- function(input, output) {
 
     })
     
+    output$boxplot3 <- renderPlot({
+      CalwData4 <- 
+        CalwData %>% 
+        mutate(delayed.testing = ymd(indexcase)- symptoms.onsetDate) %>%
+        select(c(delayed.testing, age, pregnant, traveled, contactSourceCase, sex)) %>% 
+        
+        mutate(Age_Cat = ifelse(age == '0-4' | age == '5-9' | age == '10-14' | age == '15-19', 1,
+                                ifelse(age == '20-24' | age == '25-29' | age == '30-34' | age == '35-39', 2,
+                                       ifelse(age == '40-44' | age == '45-49' | age == '50-54' | age == '55-59', 3,
+                                              ifelse(age == '60-64' | age == '65-69' | age == '70-74' | age == '75-79', 4, 5))))) %>% 
+        select(-age)
+      
+      
+      CalwData4$delayed.testing <- as.numeric(CalwData4$delayed.testing)
+      CalwData4$Age_Cat <- factor(CalwData4$Age_Cat,
+                                  levels = c(1,2,3,4, 5),
+                                  labels = c("0-19", "20-39", "40-59", "60-79", "80+"))
+      
+      CalwData4 <- CalwData4[complete.cases(CalwData4),]
+      
+      boxplot(CalwData4$delayed.testing~CalwData4$sex, col="skyblue", main='Delayed Testing by Sex', xlab="Sex", ylab="# of Days Delayed Testing")
+      
+    })
     
     output$delayed4 <- renderPlot({
       CalwData2 <- 
@@ -321,8 +524,32 @@ server <- function(input, output) {
         guides(fill=guide_legend(title="Pregnancy Status")) + 
         scale_fill_brewer(palette="Dark2")
       
+      
     })
     
+    output$boxplot4 <- renderPlot({
+      CalwData4 <- 
+        CalwData %>% 
+        mutate(delayed.testing = ymd(indexcase)- symptoms.onsetDate) %>%
+        select(c(delayed.testing, age, pregnant, traveled, contactSourceCase, sex)) %>% 
+        
+        mutate(Age_Cat = ifelse(age == '0-4' | age == '5-9' | age == '10-14' | age == '15-19', 1,
+                                ifelse(age == '20-24' | age == '25-29' | age == '30-34' | age == '35-39', 2,
+                                       ifelse(age == '40-44' | age == '45-49' | age == '50-54' | age == '55-59', 3,
+                                              ifelse(age == '60-64' | age == '65-69' | age == '70-74' | age == '75-79', 4, 5))))) %>% 
+        select(-age)
+      
+      
+      CalwData4$delayed.testing <- as.numeric(CalwData4$delayed.testing)
+      CalwData4$Age_Cat <- factor(CalwData4$Age_Cat,
+                                  levels = c(1,2,3,4, 5),
+                                  labels = c("0-19", "20-39", "40-59", "60-79", "80+"))
+      
+      CalwData4 <- CalwData4[complete.cases(CalwData4),]
+      
+      boxplot(CalwData4$delayed.testing~CalwData4$pregnant, col="skyblue", main='Delayed Testing by Pregnancy Status', xlab="Pregnacy Status", ylab="# of Days Delayed Testing")
+      
+    })
     
     ####
     
@@ -335,7 +562,7 @@ server <- function(input, output) {
     ####
     
     #### Tab G
-    
+
     ####
     
     #### Tab H
@@ -343,7 +570,7 @@ server <- function(input, output) {
     ####
     
     #### Tab I
-    
+   
     ####
     
     #### Tab J
