@@ -21,6 +21,7 @@ library(magrittr)
 library(lubridate)
 library(ggsci)
 library(ggrepel)
+library(MASS) 
 
 ui<- fluidPage(
     tabsetPanel(
@@ -317,7 +318,9 @@ ui<- fluidPage(
       tabPanel("H", fluid = TRUE,
                sidebarLayout(
                  sidebarPanel(),
-                 mainPanel()
+                 mainPanel(
+                   plotOutput("predict")
+                 )
                )
       ),
       
@@ -494,9 +497,9 @@ server <- function(input, output) {
       ) 
     
     Symptoms= CalwData %>%
-      select(contains("symptoms."))%>%
-      select_if(is.factor)%>%
-      select(-symptoms.symptomatic) %>%
+      dplyr::select(contains("symptoms."))%>%
+      dplyr::select_if(is.factor)%>%
+      dplyr::select(-symptoms.symptomatic) %>%
       gather(symptom, value ) %>%
       group_by(symptom,value) %>%
       dplyr::summarize(n=n())%>%
@@ -526,9 +529,9 @@ server <- function(input, output) {
       age_sub=input$agegroup
       fig_sub = CalwData %>%
         filter(age==age_sub)%>%
-        select(contains("symptoms."))%>%
-        select_if(is.factor)%>%
-        select(-symptoms.symptomatic) %>%
+        dplyr::select(contains("symptoms."))%>%
+        dplyr::select_if(is.factor)%>%
+        dplyr::select(-symptoms.symptomatic) %>%
         gather(symptom, value ) %>%
         group_by(symptom,value) %>%
         dplyr::summarize(n=n())%>%
@@ -552,9 +555,9 @@ server <- function(input, output) {
     
     output$bar_age <- renderPlotly({
       Symptom_distribution_age=CalwData %>%
-        select(c(age,contains("symptoms.")))%>%
-        select_if(is.factor)%>%
-        select(-symptoms.symptomatic) %>%
+        dplyr::select(c(age,contains("symptoms.")))%>%
+        dplyr::select_if(is.factor)%>%
+        dplyr::select(-symptoms.symptomatic) %>%
         gather(symptom, value, -age ) %>%
         group_by(age,symptom,value) %>%
         dplyr::summarize(n=n())%>%
@@ -577,8 +580,8 @@ server <- function(input, output) {
     
     output$bar_age_grouped <- renderPlotly({
     Symptom_distribution_age_g=CalwData %>%
-      select(c(age,contains("symptoms.")))%>%
-      select_if(is.factor)%>%
+      dplyr::select(c(age,contains("symptoms.")))%>%
+      dplyr::select_if(is.factor)%>%
       mutate(age_grouped=case_when(
         age == '0-4' | age == '5-9' | age == '10-14' | age == "15-19"  ~ 0,
         age == '20-24' | age == '25-29' | age == '30-34' | age == '35-39' ~ 1,
@@ -587,7 +590,7 @@ server <- function(input, output) {
         TRUE ~ 4),
         age_grouped=factor(age_grouped, levels = c(0,1,2,3, 4),
                            labels = c("0-19", "20-39", "40-59", "60-79", "80+")))%>%
-      select(-c(age,symptoms.symptomatic)) %>%
+      dplyr::select(-c(age,symptoms.symptomatic)) %>%
       gather(symptom, value, -age_grouped ) %>%
       group_by(age_grouped,symptom,value) %>%
       dplyr::summarize(n=n())%>%
@@ -609,8 +612,8 @@ server <- function(input, output) {
     output$bar_age_grouped_fischer= renderPlotly({
       
       Symptom_distribution_age_g=CalwData %>%
-        select(c(age,contains("symptoms.")))%>%
-        select_if(is.factor)%>%
+        dplyr::select(c(age,contains("symptoms.")))%>%
+        dplyr::select_if(is.factor)%>%
         mutate(age_grouped=case_when(
           age == '0-4' | age == '5-9' | age == '10-14' | age == "15-19"  ~ 0,
           age == '20-24' | age == '25-29' | age == '30-34' | age == '35-39' ~ 1,
@@ -619,7 +622,7 @@ server <- function(input, output) {
           TRUE ~ 4),
           age_grouped=factor(age_grouped, levels = c(0,1,2,3, 4),
                              labels = c("0-19", "20-39", "40-59", "60-79", "80+")))%>%
-        select(-c(age,symptoms.symptomatic)) %>%
+        dplyr::select(-c(age,symptoms.symptomatic)) %>%
         gather(symptom, value, -age_grouped ) %>%
         group_by(age_grouped,symptom,value) %>%
         dplyr::summarize(n=n())%>%
@@ -638,8 +641,8 @@ server <- function(input, output) {
         for(b in 1:nlevels(data[[group]])){
           bin_tmp=levels(data[[group]])[b]  
           if(bin_tmp!=bin1){
-            s1=data%>%filter({{cof}}==bin1)%>%filter(symptom==symptom_of_interes)%>%select(n)%>%as.numeric()
-            s2=data%>%filter({{cof}}==bin_tmp)%>%filter(symptom==symptom_of_interes)%>%select(n)%>%as.numeric()
+            s1=data%>%filter({{cof}}==bin1)%>%filter(symptom==symptom_of_interes)%>%dplyr::select(n)%>%as.numeric()
+            s2=data%>%filter({{cof}}==bin_tmp)%>%filter(symptom==symptom_of_interes)%>%dplyr::select(n)%>%as.numeric()
             ns1=data%>%filter({{cof}}==bin1)%>%filter(symptom!=symptom_of_interes)%>%summarize(sum(n))%>%as.numeric()
             ns2=data%>%filter({{cof}}==bin_tmp)%>%filter(symptom!=symptom_of_interes)%>%summarize(sum(n))%>%as.numeric()
             dat <- data.frame(
@@ -666,13 +669,13 @@ server <- function(input, output) {
                                     level=1:nlevels(Symptom_distribution_age_g$symptom),
                                     color=pal_simpsons("springfield")(nlevels(Symptom_distribution_age_g$symptom))))
       
-      farbe=colordata%>%filter(symptom==symptom_of_interes)%>%select(color)%>%as.character()
+      farbe=colordata%>%filter(symptom==symptom_of_interes)%>%dplyr::select(color)%>%as.character()
       
       barplot_age_dis=ggplot(Symptom_distribution_age_g%>%group_by(age_grouped)%>%mutate(total=sum(n))%>%
                               filter(symptom==symptom_of_interes), aes(x=age_grouped,y=100*n/total))+
       geom_col(aes(fill=age_grouped))+
       geom_text(data=fischer_test_function_gen(Symptom_distribution_age_g,bin1, age_grouped),aes(x=x_value, y=as.numeric(y_value), label=label_value), vjust = 1.0)+
-      ylim(NA, fischer_test_function_gen(Symptom_distribution_age_g,bin1, age_grouped)%>%filter(y_value==max(as.numeric(y_value)))%>%select(y_value)%>%head(1)%>%as.numeric() +0.5)+ 
+      ylim(NA, fischer_test_function_gen(Symptom_distribution_age_g,bin1, age_grouped)%>%filter(y_value==max(as.numeric(y_value)))%>%dplyr::select(y_value)%>%head(1)%>%as.numeric() +0.5)+ 
       scale_fill_manual(values = rep(farbe,5))+
       theme_minimal() + 
       theme(legend.position = "none")+ 
@@ -689,15 +692,15 @@ server <- function(input, output) {
     
     output$bar <- renderPlotly({
       Symptom_distribution_delay=CalwData %>%
-      select(c(testingdelay,contains("symptoms.")))%>%
-      select(-c(symptoms.temperature,symptoms.symptomatic)) %>%
+      dplyr::select(c(testingdelay,contains("symptoms.")))%>%
+      dplyr::select(-c(symptoms.temperature,symptoms.symptomatic)) %>%
       filter(!is.na(testingdelay))%>%
       mutate(delay_binned=case_when(
       testingdelay<0~"before",
       testingdelay%in%(0:2)~"immediate",
       testingdelay%in%(3:5)~"early",
       testingdelay>5~"late")%>%factor(levels = c("before","immediate","early","late")))%>%
-      select(-testingdelay)%>%
+      dplyr::select(-testingdelay)%>%
       gather(symptom, value, -delay_binned ) %>%
       group_by(delay_binned,symptom,value) %>%
       dplyr::summarize(n=n())%>%
@@ -726,8 +729,8 @@ server <- function(input, output) {
         for(b in 1:nlevels(data$delay_binned)){
           bin_tmp=levels(data$delay_binned)[b]
           if(bin_tmp!=bin1){
-            s1=data%>%filter(delay_binned==bin1)%>%filter(symptom==symptom_of_interes)%>%select(n)%>%as.numeric()
-            s2=data%>%filter(delay_binned==bin_tmp)%>%filter(symptom==symptom_of_interes)%>%select(n)%>%as.numeric()
+            s1=data%>%filter(delay_binned==bin1)%>%filter(symptom==symptom_of_interes)%>%dplyr::select(n)%>%as.numeric()
+            s2=data%>%filter(delay_binned==bin_tmp)%>%filter(symptom==symptom_of_interes)%>%dplyr::select(n)%>%as.numeric()
             ns1=data%>%filter(delay_binned==bin1)%>%filter(symptom!=symptom_of_interes)%>%summarize(sum(n))%>%as.numeric()
             ns2=data%>%filter(delay_binned==bin_tmp)%>%filter(symptom!=symptom_of_interes)%>%summarize(sum(n))%>%as.numeric()
             dat <- data.frame(
@@ -750,15 +753,15 @@ server <- function(input, output) {
       }
       
       Symptom_distribution_delay=CalwData %>%
-        select(c(testingdelay,contains("symptoms.")))%>%
-        select(-c(symptoms.temperature,symptoms.symptomatic)) %>%
+        dplyr::select(c(testingdelay,contains("symptoms.")))%>%
+        dplyr::select(-c(symptoms.temperature,symptoms.symptomatic)) %>%
         filter(!is.na(testingdelay))%>%
         mutate(delay_binned=case_when(
           testingdelay<0~"before",
           testingdelay%in%(0:2)~"immediate",
           testingdelay%in%(3:5)~"early",
           testingdelay>5~"late")%>%factor(levels = c("before","immediate","early","late")))%>%
-        select(-testingdelay)%>%
+        dplyr::select(-testingdelay)%>%
         gather(symptom, value, -delay_binned ) %>%
         group_by(delay_binned,symptom,value) %>%
         dplyr::summarize(n=n())%>%
@@ -769,14 +772,14 @@ server <- function(input, output) {
                                     level=1:nlevels(Symptom_distribution_delay$symptom),
                                     color=pal_simpsons("springfield")(nlevels(Symptom_distribution_delay$symptom))))
       
-      farbe=colordata%>%filter(symptom==symptom_of_interes)%>%select(color)%>%as.character()
+      farbe=colordata%>%filter(symptom==symptom_of_interes)%>%dplyr::select(color)%>%as.character()
       
       barplot_delay=ggplot(Symptom_distribution_delay%>%group_by(delay_binned)%>%mutate(total=sum(n))%>%filter(symptom==symptom_of_interes), aes(x=delay_binned,y=100*n/total))+
         geom_col(aes(fill=delay_binned))+
         geom_text(data=fischer_test_function(Symptom_distribution_delay,bin1),
                   aes(x=x_value, y=as.numeric(y_value), label=label_value,vjust = 1.5))+
         ylim(NA, fischer_test_function(Symptom_distribution_delay,bin1)%>%
-               filter(y_value==max(as.numeric(y_value)))%>%select(y_value)%>%head(1)%>%as.numeric() +0.5)+
+               filter(y_value==max(as.numeric(y_value)))%>%dplyr::select(y_value)%>%head(1)%>%as.numeric() +0.5)+
         theme_minimal() + 
         theme(legend.position = "none")+ 
         xlab("Test Timing Category") + 
@@ -792,6 +795,71 @@ server <- function(input, output) {
     ####
     
     #### Tab H
+    
+    
+    output$predict <- renderPlot({
+      
+      Symptom_distribution_delay=CalwData %>%
+        dplyr::select(c(testingdelay,contains("symptoms.")))%>%
+        dplyr::select(-c(symptoms.temperature,symptoms.symptomatic)) %>%
+        filter(!is.na(testingdelay))%>%
+        mutate(delay_binned=case_when(
+          testingdelay<0~"before",
+          testingdelay%in%(0:2)~"immediate",
+          testingdelay%in%(3:5)~"early",
+          testingdelay>5~"late")%>%factor(levels = c("before","immediate","early","late")))%>%
+        dplyr::select(-testingdelay)%>%
+        gather(symptom, value, -delay_binned ) %>%
+        group_by(delay_binned,symptom,value) %>%
+        dplyr::summarize(n=n())%>%
+        filter(value=="yes")%>%
+        mutate(symptom=str_replace(symptom,"symptoms.","")%>%fix_symptoms)
+      
+    Symptom_distribution_delay_expand <- Symptom_distribution_delay %>%
+      uncount(n)
+    
+    #  Observed frequencies
+    observed=Symptom_distribution_delay_expand %>%
+      group_by(symptom) %>%
+      dplyr::summarize(n = n(), 
+                       before = sum(delay_binned == "before")/n,
+                       imm = sum(delay_binned == "immediate")/n,
+                       ear = sum(delay_binned == "early")/n,
+                       late = sum(delay_binned == "late")/n)
+    
+    
+    #  Predicted frequencies
+    modelord <- polr(delay_binned ~ symptom, data = Symptom_distribution_delay_expand, Hess=TRUE, method="logistic")
+    #summary(modelord)
+    
+    pred_data <- as_tibble(predict(modelord, type="probs")) 
+    #pred_data
+    
+    Symptom_distribution_delay_expand <- bind_cols(Symptom_distribution_delay_expand, pred_data)
+    
+    # Find mean probs
+    predict=Symptom_distribution_delay_expand %>% 
+      group_by(symptom) %>%
+      dplyr::summarize(
+        before = mean(before), 
+        imm = mean(immediate), 
+        ear = mean(`early`),
+        late = mean(`late`))
+    
+    predict=cbind(predict, data=rep("predicted",14), n=observed$n)
+    observed=cbind(observed, data=rep("observed",14))
+    
+    comparison= rbind(predict,observed)
+    barplot_comparison_before=ggplot(comparison, aes(x=symptom, y=before,fill=data))+
+      geom_col( position=position_dodge())
+    
+    barplot_comparison_before
+    
+    #barplot_comparison_immediate= ggplot(comparison, aes(x=symptom, y=imm,fill=data))+
+      #geom_col( position=position_dodge())
+  
+    #barplot_comparison_immediate )
+    })
     
     ####
     
