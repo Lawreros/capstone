@@ -84,7 +84,7 @@ ui<- fluidPage(
                    tabPanel("Previous Travel", plotOutput('delayed1'), h4("Boxplot Analysis"), plotOutput('boxplot1')),
                    tabPanel("Known Contact", plotOutput('delayed2'), h4("Boxplot Analysis"), plotOutput('boxplot2')),
                    tabPanel("By Sex", plotOutput('delayed3'), h4("Boxplot Analysis"), plotOutput('boxplot3')), 
-                   tabPanel("Pregnant or Not", plotOutput('delayed4'),h4("Boxplot Analysis"), plotOutput('boxplot4'))
+                   tabPanel("Pregnancy Status", plotOutput('delayed4'),h4("Boxplot Analysis"), plotOutput('boxplot4'))
                  )
                  )
                )
@@ -94,23 +94,23 @@ ui<- fluidPage(
                sidebarLayout(
                  sidebarPanel(h3("Select Features:"),
                               selectInput("ages2", label=h3("Age Category"),
-                               choices = list("0-19" = 0,"20-39" = 1,"40-59" = 2,"60-79" = 3,"80+" = 4),
-                               selected =  0 ),
+                               choices = list("0-19","20-39","40-59" ,"60-79","80+"),
+                               selected =  "0-19" ),
                               selectInput("traveled", label=h3("Previous Travel"),
-                               choices = list("yes" = 1 , "no" = 2),
-                               selected = 1),
+                               choices = list("yes", "no"),
+                               selected = "yes"),
                               selectInput("contact", label=h3("Known Contact"),
-                               choices = list("yes" = 1, "no" = 2,"unknown"= 3),
-                               selected = 1)
+                               choices = list("yes", "no","unknown"),
+                               selected = "yes")
                  ),
                  mainPanel(h3("Expected Delayed Testing using MLR"),
                            tabsetPanel(
                              tabPanel("MLR Table",
-                                      p("Outcome = Number of Days to take a COVID-19 test since onset of symptoms"), 
-                                      p("Codebook: "), 
-                                      p("Age Category 0-19 = Reference"),
-                                      p("Known Contact = Reference"),
-                                      p("Traveled (yes) = Reference"), 
+                                      p("Outcome is the number of days to take a COVID-19 test since onset of symptoms"), 
+                                      p(strong("Codebook:")), 
+                                      p(em("Age Category 0-19 = Reference")),
+                                      p(em("Known Contact = Reference")),
+                                      p(em("Traveled (yes) = Reference")), 
                                       htmlOutput('linear'),
                                       h5("MLR interpretations"),
                                       p("The Intercept value of 2.19 is the expected mean number of days to take a test since symptoms onset if the individual is 0-19 years old, has a known Contact, and has traveled."), 
@@ -164,28 +164,13 @@ ui<- fluidPage(
                )
       ),
       
-      
       tabPanel("I", fluid = TRUE,
                sidebarLayout(
-                 sidebarPanel(
-                   h3('Select Age Category:'),
-                   checkboxGroupInput("agetime", label=h3("Five Year Bins:"),
-                                      choices = list('0-4','5-9','10-14','15-19','20-24','25-29','30-34','35-39','40-44','45-49','50-54',
-                                                     '55-59','60-64','65-69','70-74','75-79','80-84','85-89','90-94','95-99','100-104'),
-                                      selected = '0-4'
-                   ),
-                   checkboxGroupInput("agewide", label=h3("Twenty Year Bins:"),
-                                      choices = list('0-19','20-39','40-59','60-79','80+'),
-                                      selected = '0-19'
-                   )
-                 ),
-                 mainPanel(
-                   h2('COVID-19 Cases over Time (Dec 2020 - April 2021'),
-                   plotOutput('timetrend')
-                 )
+                 sidebarPanel(),
+                 mainPanel()
                )
       ),
-      
+   
       
       tabPanel("J", fluid = TRUE,
                sidebarLayout(
@@ -308,7 +293,7 @@ server <- function(input, output) {
       
       
       linear.reg =lm(formula = delayed.testing ~ Age_Cat + contactSourceCase +  traveled, data = CalwData4)
-      effect_plot(linear.reg, pred=Age_Cat,x.label = "Age", y.label = "# of days to test", interval = TRUE)
+      effect_plot(linear.reg, pred=Age_Cat,x.label = "Age", y.label = "# of days to test", main.title = "By Age", colors = "darkblue", interval = TRUE)
       
     })
     
@@ -333,7 +318,7 @@ server <- function(input, output) {
       
       
       linear.reg =lm(formula = delayed.testing ~ Age_Cat + contactSourceCase +  traveled, data = CalwData4)
-      effect_plot(linear.reg, pred= contactSourceCase, x.label = "Contact History", y.label = "# of days to test", interval = TRUE)
+      effect_plot(linear.reg, pred= contactSourceCase, x.label = "Contact History", y.label = "# of days to test", main.title = "By Contact History", colors = "darkblue", interval = TRUE)
       
     })
     
@@ -358,7 +343,7 @@ server <- function(input, output) {
       
       
       linear.reg =lm(formula = delayed.testing ~ Age_Cat + contactSourceCase +  traveled, data = CalwData4)
-      effect_plot(linear.reg, pred=traveled, x.label = "Travel History", y.label = "# of days to test", interval = TRUE)
+      effect_plot(linear.reg, pred=traveled, x.label = "Travel History", y.label = "# of days to test",main.title = "By Travel History", colors = "darkblue", interval = TRUE)
       
     })
     
