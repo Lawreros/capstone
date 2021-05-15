@@ -110,13 +110,14 @@ ui<- fluidPage(
                                       p("Age Category 0-19 = Reference"),
                                       p("Known Contact = Reference"),
                                       p("Traveled (yes) = Reference"), 
-                                      htmlOutput('linear')), 
+                                      htmlOutput('linear'),
                                       h5("MLR interpretations"),
                                       p("The Intercept value of 2.19 is the expected mean number of days to take a test since symptoms onset if the individual is 0-19 years old, has a known Contact, and has traveled."), 
                                       p("If someone is 60-79 years they will have tested 0.84 days later than someone who is 0-19 years old with all other variables held constant (p<0.05)."), 
                                       p("If someone is over 80 years old, they will have tested 1.1 days earlier than someone who is 0-19 years old with all other variables held constant (p<0.05)."), 
                                       p("If someone had unknown or unsure contact history, they will have tested 0.64 days earlier than someone who tested due to a known contact source with all other variables held constant  (p<0.05)."),
                                       p("If someone had no previous travel history, they will have tested 0.59 days later than someone who had tested with a previous travel history with all other variables held constant (p<0.05)."),
+                             ),
                              tabPanel("Calculator",
                                       h4("How to Use:"), 
                                       p("Select Features for Age Category, Known Contact, and Previous Travel"),
@@ -555,6 +556,7 @@ server <- function(input, output) {
     
     #### Tab E
     
+    
     ####
     
     #### Tab F
@@ -562,7 +564,7 @@ server <- function(input, output) {
     ####
     
     #### Tab G
-
+    
     ####
     
     #### Tab H
