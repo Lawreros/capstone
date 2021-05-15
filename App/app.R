@@ -55,9 +55,10 @@ ui<- fluidPage(
       tabPanel("Delayed Testing - Descriptive", fluid = TRUE,
                
                sidebarLayout(
-                 sidebarPanel(h3("Select by:"), 
+                 sidebarPanel(p(strong("How to use: Select criteria on the left panel and click on respective tab to view results.")),
+                              h4("Select by:"),
                               checkboxGroupInput("ages2", label=h4("Age Group"),
-                                                 choices = list('0-19','20-39','40-59','60-79','80+'),
+                                                 choices = list("0-19" = "0-19","20-39" = "20-39","40-59" = "40-59","60-79" = "60-79","80+" = "80+"),
                                                  selected = '0-19'),
                               checkboxGroupInput('traveled', label=h4("Previous Travel"),
                                            choices = list('yes', 'no'),
@@ -75,10 +76,10 @@ ui<- fluidPage(
                  mainPanel(
                    h3("Density Curves of Delay in Testing"), 
                    p("The delayed testing variable is calculated by the number of days since symptom onset to an individual's first (positive result) test."),
-                   p("Negative days of delayed testing can be explained if the individual was tested before symptom onset due to a known outbreak or contact, or vulnerable settings, such as nursing homes."),
+                   p(em("Negative days of delayed testing can be explained if the individual was tested before symptom onset due to a known outbreak or contact, or vulnerable settings, such as nursing homes.")),
                    p("The density curves below show the distribution of days until testing by age, traveled status, known contact history, sex, and pregnancy status."),
                    p("The dashed lines indicate the mean for each selected group."),
-                   p("How to use: Select criteria on the left panel and click on respective tab to view results."),
+        
                    tabsetPanel(
                    tabPanel("By Age", plotOutput('delayed'), h4("Boxplot Analysis"), plotOutput('boxplot')),
                    tabPanel("Previous Travel", plotOutput('delayed1'), h4("Boxplot Analysis"), plotOutput('boxplot1')),
@@ -92,14 +93,15 @@ ui<- fluidPage(
       
       tabPanel("Delayed Testing - MLR", fluid = TRUE,
                sidebarLayout(
-                 sidebarPanel(h3("Select Features:"),
-                              selectInput("ages2", label=h3("Age Category"),
-                               choices = list("0-19","20-39","40-59" ,"60-79","80+"),
-                               selected =  "0-19" ),
-                              selectInput("traveled", label=h3("Previous Travel"),
+                 sidebarPanel(p(strong("How to use: Select criteria and click on Calculator tab to view results.")),
+                              h3("Select Features:"),
+                              selectInput("ages3", label=h3("Age Category"),
+                              choices = list("0-19" = "0-19","20-39" = "20-39","40-59" = "40-59","60-79" = "60-79","80+" = "80+"),
+                               selected = "0-19"),
+                              selectInput("traveled3", label=h3("Previous Travel"),
                                choices = list("yes", "no"),
                                selected = "yes"),
-                              selectInput("contact", label=h3("Known Contact"),
+                              selectInput("contact3", label=h3("Known Contact"),
                                choices = list("yes", "no","unknown"),
                                selected = "yes")
                  ),
@@ -123,10 +125,7 @@ ui<- fluidPage(
                                       plotOutput('linregplot3')
                                        ),
                              tabPanel("Calculator",
-                                      h4("How to Use:"), 
-                                      p("Select Features for Age Category, Known Contact, and Previous Travel"),
-                                      p(),
-                                      h5("Expected number of days to take test since symptoms onset:"),
+                                      h4("Expected number of days after symptoms onset individual takes COVID-19 test"),
                                       textOutput('linreg'))
                              
                            )
@@ -213,6 +212,272 @@ server <- function(input, output) {
     
     ####
     
+    #### Tab "Delayed Testing - Descriptive" 
+    
+    # Bar chart for delayed days
+    
+    output$delayed <- renderPlot({
+      CalwData2 <- 
+        CalwData %>% 
+        mutate(delayed.testing = ymd(indexcase)- symptoms.onsetDate) %>%
+        
+        mutate(Age_Cat = ifelse(age == '0-4' | age == '5-9' | age == '10-14' | age == '15-19', 1,
+                                ifelse(age == '20-24' | age == '25-29' | age == '30-34' | age == '35-39', 2,
+                                       ifelse(age == '40-44' | age == '45-49' | age == '50-54' | age == '55-59', 3,
+                                              ifelse(age == '60-64' | age == '65-69' | age == '70-74' | age == '75-79', 4, 5))))) 
+      
+      CalwData2$Age_Cat <- factor(CalwData2$Age_Cat,
+                                  levels = c(1,2,3, 4, 5),
+                                  labels = c("0-19", "20-39", "40-59", "60-79", "80+"))
+      
+      mu <- CalwData2 %>% 
+        group_by(Age_Cat) %>% 
+        summarize (grp.mean = mean(delayed.testing, na.rm = TRUE)) %>% 
+        ungroup()
+      
+      ggplot()+
+        geom_density(CalwData2[CalwData2$Age_Cat %in% input$ages2,], mapping = aes(delayed.testing, fill = Age_Cat), alpha=0.4) +
+        geom_vline(mu[mu$Age_Cat %in% input$ages2,], mapping = aes(xintercept = grp.mean), linetype="dashed") +
+        geom_label_repel(mu[mu$Age_Cat %in% input$ages2,], mapping = aes(x = grp.mean, y= 0.2, label = paste(round(grp.mean, 3)), fill = input$ages2), colour="white") +
+        xlim(c(-10, 14)) + 
+        theme_minimal() + 
+        ggtitle ("Delayed Testing by Age") + 
+        theme(plot.title = element_text(hjust = 0.5, size = 14, face = "bold")) + 
+        xlab("Number of Days") + 
+        ylab("Density") + 
+        guides(fill=guide_legend(title="Age Category")) + 
+        scale_fill_brewer(palette="Dark2")
+      
+    })
+    output$boxplot <- renderPlot({
+      CalwData4 <- 
+        CalwData %>% 
+        mutate(delayed.testing = ymd(indexcase)- symptoms.onsetDate) %>%
+        select(c(delayed.testing, age, pregnant, traveled, contactSourceCase, sex)) %>% 
+        
+        mutate(Age_Cat = ifelse(age == '0-4' | age == '5-9' | age == '10-14' | age == '15-19', 1,
+                                ifelse(age == '20-24' | age == '25-29' | age == '30-34' | age == '35-39', 2,
+                                       ifelse(age == '40-44' | age == '45-49' | age == '50-54' | age == '55-59', 3,
+                                              ifelse(age == '60-64' | age == '65-69' | age == '70-74' | age == '75-79', 4, 5))))) %>% 
+        select(-age)
+      
+      
+      CalwData4$delayed.testing <- as.numeric(CalwData4$delayed.testing)
+      CalwData4$Age_Cat <- factor(CalwData4$Age_Cat,
+                                  levels = c(1,2,3,4, 5),
+                                  labels = c("0-19", "20-39", "40-59", "60-79", "80+"))
+      
+      CalwData4 <- CalwData4[complete.cases(CalwData4),]
+      
+      boxplot(CalwData4$delayed.testing~CalwData4$Age_Cat, col="skyblue", main='Days to take Test since Symptoms Onset by Age', xlab="Age", ylab="# of days of delayed testing")
+      
+    })
+    
+    output$delayed1 <- renderPlot({
+      
+      CalwData2 <- 
+        CalwData %>% 
+        mutate(delayed.testing = ymd(indexcase)- symptoms.onsetDate)
+      
+      
+      mu <- CalwData2 %>% 
+        group_by(traveled) %>% 
+        summarize (grp.mean = mean(delayed.testing, na.rm = TRUE)) %>% 
+        ungroup()
+      
+      
+      ggplot()+
+        geom_density(CalwData2[CalwData2$traveled %in% input$traveled,], mapping = aes(delayed.testing, fill = traveled), na.rm = TRUE, alpha=0.4) + 
+        geom_vline(mu[mu$traveled %in% input$traveled,], mapping = aes(xintercept = grp.mean), linetype="dashed") +
+        geom_label_repel(mu[mu$traveled %in% input$traveled,], mapping = aes(x = grp.mean, y= 0.2, label = paste(round(grp.mean, 3)), fill = input$traveled), colour="white") +
+        xlim(c(-5, 10))+ 
+        theme_minimal() + 
+        ggtitle ("Delayed Testing by Pregnancy Status") + 
+        theme(plot.title = element_text(hjust = 0.5, size = 14, face = "bold")) + 
+        xlab("Number of Days") + 
+        ylab("Density") + 
+        guides(fill=guide_legend(title="Pregnancy Status")) + 
+        scale_fill_brewer(palette="Dark2")
+      
+    })
+    
+    output$boxplot1 <- renderPlot({
+      CalwData4 <- 
+        CalwData %>% 
+        mutate(delayed.testing = ymd(indexcase)- symptoms.onsetDate) %>%
+        select(c(delayed.testing, age, pregnant, traveled, contactSourceCase, sex)) %>% 
+        
+        mutate(Age_Cat = ifelse(age == '0-4' | age == '5-9' | age == '10-14' | age == '15-19', 1,
+                                ifelse(age == '20-24' | age == '25-29' | age == '30-34' | age == '35-39', 2,
+                                       ifelse(age == '40-44' | age == '45-49' | age == '50-54' | age == '55-59', 3,
+                                              ifelse(age == '60-64' | age == '65-69' | age == '70-74' | age == '75-79', 4, 5))))) %>% 
+        select(-age)
+      
+      
+      CalwData4$delayed.testing <- as.numeric(CalwData4$delayed.testing)
+      CalwData4$Age_Cat <- factor(CalwData4$Age_Cat,
+                                  levels = c(1,2,3,4, 5),
+                                  labels = c("0-19", "20-39", "40-59", "60-79", "80+"))
+      
+      CalwData4 <- CalwData4[complete.cases(CalwData4),]
+      
+      boxplot(CalwData4$delayed.testing~CalwData4$traveled, col="skyblue", main='Days to take Test Since Symptoms by Previous Travel', xlab="Traveled", ylab="# of Days Delayed Testing")
+      
+    })
+    
+    
+    output$delayed2 <- renderPlot({
+      CalwData2 <- 
+        CalwData %>% 
+        mutate(delayed.testing = ymd(indexcase)- symptoms.onsetDate)
+      
+      mu <- CalwData2 %>% 
+        group_by(contactSourceCase) %>% 
+        summarize (grp.mean = mean(delayed.testing, na.rm = TRUE)) %>% 
+        ungroup()
+      
+      ggplot() + 
+        geom_density(CalwData2[CalwData2$contactSourceCase %in% input$contact,], mapping = aes(delayed.testing, fill = contactSourceCase), na.rm = TRUE, alpha=0.4) + 
+        geom_vline(mu[mu$contactSourceCase %in% input$contact,], mapping = aes(xintercept = grp.mean), linetype="dashed") +
+        geom_label_repel(mu[mu$contactSourceCase %in% input$contact,], mapping = aes(x = grp.mean, y= 0.2, label = paste(round(grp.mean, 3)), fill = input$contact), colour="white") +
+        xlim(c(-5, 10)) + 
+        theme_minimal() + 
+        ggtitle ("Delayed Testing by Known Contact History") + 
+        theme(plot.title = element_text(hjust = 0.5, size = 14, face = "bold")) + 
+        xlab("Number of Days") + 
+        ylab("Density") + 
+        guides(fill=guide_legend(title="Known Contact")) + 
+        scale_fill_brewer(palette="Dark2")
+      
+    })
+    
+    
+    output$boxplot2 <- renderPlot({
+      CalwData4 <- 
+        CalwData %>% 
+        mutate(delayed.testing = ymd(indexcase)- symptoms.onsetDate) %>%
+        select(c(delayed.testing, age, pregnant, traveled, contactSourceCase, sex)) %>% 
+        
+        mutate(Age_Cat = ifelse(age == '0-4' | age == '5-9' | age == '10-14' | age == '15-19', 1,
+                                ifelse(age == '20-24' | age == '25-29' | age == '30-34' | age == '35-39', 2,
+                                       ifelse(age == '40-44' | age == '45-49' | age == '50-54' | age == '55-59', 3,
+                                              ifelse(age == '60-64' | age == '65-69' | age == '70-74' | age == '75-79', 4, 5))))) %>% 
+        select(-age)
+      
+      
+      CalwData4$delayed.testing <- as.numeric(CalwData4$delayed.testing)
+      CalwData4$Age_Cat <- factor(CalwData4$Age_Cat,
+                                  levels = c(1,2,3,4, 5),
+                                  labels = c("0-19", "20-39", "40-59", "60-79", "80+"))
+      
+      CalwData4 <- CalwData4[complete.cases(CalwData4),]
+      
+      boxplot(CalwData4$delayed.testing~CalwData4$contactSourceCase, col="skyblue", main='Delayed Testing by Known Contact', xlab="Known Contact", ylab="# of Days Delayed Testing")
+      
+    })
+    output$delayed3 <- renderPlot({
+      CalwData2 <- 
+        CalwData %>% 
+        mutate(delayed.testing = ymd(indexcase)-symptoms.onsetDate)
+      
+      mu <- CalwData2 %>% 
+        group_by(sex) %>% 
+        summarize (grp.mean = mean(delayed.testing, na.rm = TRUE)) %>% 
+        ungroup()
+      
+      ggplot() + 
+        geom_density(CalwData2[CalwData2$sex %in% input$sex,], mapping = aes(delayed.testing, fill = sex), na.rm = TRUE, alpha = 0.4) + 
+        geom_vline(mu[mu$sex %in% input$sex,], mapping = aes(xintercept = grp.mean), linetype="dashed") +
+        geom_label_repel(mu[mu$sex %in% input$sex,], mapping = aes(x = grp.mean, y= 0.2, label = paste(round(grp.mean, 3)), fill = input$sex), colour="white") +
+        xlim(c(-5, 10)) + 
+        theme_minimal() + 
+        ggtitle ("Delayed Testing by Sex") + 
+        theme(plot.title = element_text(hjust = 0.5, size = 14, face = "bold")) + 
+        xlab("Number of Days") + 
+        ylab("Density") + 
+        guides(fill=guide_legend(title="Sex")) + 
+        scale_fill_brewer(palette="Dark2") 
+      
+      
+    })
+    
+    output$boxplot3 <- renderPlot({
+      CalwData4 <- 
+        CalwData %>% 
+        mutate(delayed.testing = ymd(indexcase)- symptoms.onsetDate) %>%
+        select(c(delayed.testing, age, pregnant, traveled, contactSourceCase, sex)) %>% 
+        
+        mutate(Age_Cat = ifelse(age == '0-4' | age == '5-9' | age == '10-14' | age == '15-19', 1,
+                                ifelse(age == '20-24' | age == '25-29' | age == '30-34' | age == '35-39', 2,
+                                       ifelse(age == '40-44' | age == '45-49' | age == '50-54' | age == '55-59', 3,
+                                              ifelse(age == '60-64' | age == '65-69' | age == '70-74' | age == '75-79', 4, 5))))) %>% 
+        select(-age)
+      
+      
+      CalwData4$delayed.testing <- as.numeric(CalwData4$delayed.testing)
+      CalwData4$Age_Cat <- factor(CalwData4$Age_Cat,
+                                  levels = c(1,2,3,4, 5),
+                                  labels = c("0-19", "20-39", "40-59", "60-79", "80+"))
+      
+      CalwData4 <- CalwData4[complete.cases(CalwData4),]
+      
+      boxplot(CalwData4$delayed.testing~CalwData4$sex, col="skyblue", main='Delayed Testing by Sex', xlab="Sex", ylab="# of Days Delayed Testing")
+      
+    })
+    
+    output$delayed4 <- renderPlot({
+      CalwData2 <- 
+        CalwData %>% 
+        mutate(delayed.testing = ymd(indexcase)- symptoms.onsetDate)
+      
+      mu <- CalwData2 %>% 
+        group_by(pregnant) %>% 
+        summarize (grp.mean = mean(delayed.testing, na.rm = TRUE)) %>% 
+        ungroup()
+      
+      
+      ggplot() + 
+        geom_density(CalwData2[CalwData2$pregnant %in% input$pregnant,], mapping = aes(delayed.testing, fill = pregnant), na.rm = TRUE, alpha = 0.4) + 
+        geom_vline(mu[mu$pregnant %in% input$pregnant,], mapping = aes(xintercept = grp.mean), linetype="dashed") +
+        geom_label_repel(mu[mu$pregnant %in% input$pregnant,], mapping = aes(x = grp.mean, y= 0.2, label = paste(round(grp.mean, 3)), fill = input$pregnant), colour="white") +
+        xlim(c(-5, 10)) + 
+        theme_minimal() + 
+        ggtitle ("Delayed Testing by Pregnancy Status") + 
+        theme(plot.title = element_text(hjust = 0.5, size = 14, face = "bold")) + 
+        xlab("Number of Days") + 
+        ylab("Density") + 
+        guides(fill=guide_legend(title="Pregnancy Status")) + 
+        scale_fill_brewer(palette="Dark2")
+      
+      
+    })
+    
+    output$boxplot4 <- renderPlot({
+      CalwData4 <- 
+        CalwData %>% 
+        mutate(delayed.testing = ymd(indexcase)- symptoms.onsetDate) %>%
+        select(c(delayed.testing, age, pregnant, traveled, contactSourceCase, sex)) %>% 
+        
+        mutate(Age_Cat = ifelse(age == '0-4' | age == '5-9' | age == '10-14' | age == '15-19', 1,
+                                ifelse(age == '20-24' | age == '25-29' | age == '30-34' | age == '35-39', 2,
+                                       ifelse(age == '40-44' | age == '45-49' | age == '50-54' | age == '55-59', 3,
+                                              ifelse(age == '60-64' | age == '65-69' | age == '70-74' | age == '75-79', 4, 5))))) %>% 
+        select(-age)
+      
+      
+      CalwData4$delayed.testing <- as.numeric(CalwData4$delayed.testing)
+      CalwData4$Age_Cat <- factor(CalwData4$Age_Cat,
+                                  levels = c(1,2,3,4, 5),
+                                  labels = c("0-19", "20-39", "40-59", "60-79", "80+"))
+      
+      CalwData4 <- CalwData4[complete.cases(CalwData4),]
+      
+      boxplot(CalwData4$delayed.testing~CalwData4$pregnant, col="skyblue", main='Delayed Testing by Pregnancy Status', xlab="Pregnacy Status", ylab="# of Days Delayed Testing")
+      
+    })
+    
+    ####
+    
     #### Tab "Delayed Testing - MLR"
     
     output$linear <- renderUI({
@@ -263,9 +528,9 @@ server <- function(input, output) {
     
       linear.reg =lm(formula = delayed.testing ~ Age_Cat + contactSourceCase +  traveled, data = CalwData4)
       
-      mydf <- data.frame(Age_Cat = input$ages2, traveled = input$traveled, contactSourceCase = input$contact)
+      mydf <- data.frame(Age_Cat = input$ages3, contactSourceCase = input$contact3, traveled = input$traveled3)
       
-      prob <- predict(linear.reg, mydf)
+      prob <- predict(linear.reg, newdata= mydf)
       paste(round(prob,2), " days")
     
       
@@ -349,273 +614,7 @@ server <- function(input, output) {
     
     
     ####
-    
-    #### Tab "Delayed Testing - Density Curves" 
-  
-    # Bar chart for delayed days
-    
-    output$delayed <- renderPlot({
-      CalwData2 <- 
-        CalwData %>% 
-        mutate(delayed.testing = ymd(indexcase)- symptoms.onsetDate) %>%
- 
-        mutate(Age_Cat = ifelse(age == '0-4' | age == '5-9' | age == '10-14' | age == '15-19', 1,
-                                ifelse(age == '20-24' | age == '25-29' | age == '30-34' | age == '35-39', 2,
-                                       ifelse(age == '40-44' | age == '45-49' | age == '50-54' | age == '55-59', 3,
-                                              ifelse(age == '60-64' | age == '65-69' | age == '70-74' | age == '75-79', 4, 5))))) 
-      
-        CalwData2$Age_Cat <- factor(CalwData2$Age_Cat,
-                                  levels = c(1,2,3, 4, 5),
-                                  labels = c("0-19", "20-39", "40-59", "60-79", "80+"))
-        
-        mu <- CalwData2 %>% 
-          group_by(Age_Cat) %>% 
-          summarize (grp.mean = mean(delayed.testing, na.rm = TRUE)) %>% 
-          ungroup()
 
-      ggplot()+
-        geom_density(CalwData2[CalwData2$Age_Cat %in% input$ages2,], mapping = aes(delayed.testing, fill = Age_Cat), alpha=0.4) +
-        geom_vline(mu[mu$Age_Cat %in% input$ages2,], mapping = aes(xintercept = grp.mean), linetype="dashed") +
-        geom_label_repel(mu[mu$Age_Cat %in% input$ages2,], mapping = aes(x = grp.mean, y= 0.2, label = paste(round(grp.mean, 3)), fill = input$ages2), colour="white") +
-        xlim(c(-10, 14)) + 
-        theme_minimal() + 
-        ggtitle ("Delayed Testing by Age") + 
-        theme(plot.title = element_text(hjust = 0.5, size = 14, face = "bold")) + 
-        xlab("Number of Days") + 
-        ylab("Density") + 
-        guides(fill=guide_legend(title="Age Category")) + 
-        scale_fill_brewer(palette="Dark2")
-      
-    })
-    output$boxplot <- renderPlot({
-      CalwData4 <- 
-        CalwData %>% 
-        mutate(delayed.testing = ymd(indexcase)- symptoms.onsetDate) %>%
-        select(c(delayed.testing, age, pregnant, traveled, contactSourceCase, sex)) %>% 
-        
-        mutate(Age_Cat = ifelse(age == '0-4' | age == '5-9' | age == '10-14' | age == '15-19', 1,
-                                ifelse(age == '20-24' | age == '25-29' | age == '30-34' | age == '35-39', 2,
-                                       ifelse(age == '40-44' | age == '45-49' | age == '50-54' | age == '55-59', 3,
-                                              ifelse(age == '60-64' | age == '65-69' | age == '70-74' | age == '75-79', 4, 5))))) %>% 
-        select(-age)
-      
-      
-      CalwData4$delayed.testing <- as.numeric(CalwData4$delayed.testing)
-      CalwData4$Age_Cat <- factor(CalwData4$Age_Cat,
-                                  levels = c(1,2,3,4, 5),
-                                  labels = c("0-19", "20-39", "40-59", "60-79", "80+"))
-      
-      CalwData4 <- CalwData4[complete.cases(CalwData4),]
-      
-      boxplot(CalwData4$delayed.testing~CalwData4$Age_Cat, col="skyblue", main='Days to take Test since Symptoms Onset by Age', xlab="Age", ylab="# of days of delayed testing")
-      
-    })
-    
-    output$delayed1 <- renderPlot({
-
-    CalwData2 <- 
-      CalwData %>% 
-      mutate(delayed.testing = ymd(indexcase)- symptoms.onsetDate)
-    
-    
-    mu <- CalwData2 %>% 
-      group_by(traveled) %>% 
-      summarize (grp.mean = mean(delayed.testing, na.rm = TRUE)) %>% 
-      ungroup()
-
-     
-      ggplot()+
-      geom_density(CalwData2[CalwData2$traveled %in% input$traveled,], mapping = aes(delayed.testing, fill = traveled), na.rm = TRUE, alpha=0.4) + 
-        geom_vline(mu[mu$traveled %in% input$traveled,], mapping = aes(xintercept = grp.mean), linetype="dashed") +
-        geom_label_repel(mu[mu$traveled %in% input$traveled,], mapping = aes(x = grp.mean, y= 0.2, label = paste(round(grp.mean, 3)), fill = input$traveled), colour="white") +
-        xlim(c(-5, 10))+ 
-        theme_minimal() + 
-        ggtitle ("Delayed Testing by Pregnancy Status") + 
-        theme(plot.title = element_text(hjust = 0.5, size = 14, face = "bold")) + 
-        xlab("Number of Days") + 
-        ylab("Density") + 
-        guides(fill=guide_legend(title="Pregnancy Status")) + 
-        scale_fill_brewer(palette="Dark2")
-     
-    })
-    
-    output$boxplot1 <- renderPlot({
-      CalwData4 <- 
-        CalwData %>% 
-        mutate(delayed.testing = ymd(indexcase)- symptoms.onsetDate) %>%
-        select(c(delayed.testing, age, pregnant, traveled, contactSourceCase, sex)) %>% 
-        
-        mutate(Age_Cat = ifelse(age == '0-4' | age == '5-9' | age == '10-14' | age == '15-19', 1,
-                                ifelse(age == '20-24' | age == '25-29' | age == '30-34' | age == '35-39', 2,
-                                       ifelse(age == '40-44' | age == '45-49' | age == '50-54' | age == '55-59', 3,
-                                              ifelse(age == '60-64' | age == '65-69' | age == '70-74' | age == '75-79', 4, 5))))) %>% 
-        select(-age)
-      
-      
-      CalwData4$delayed.testing <- as.numeric(CalwData4$delayed.testing)
-      CalwData4$Age_Cat <- factor(CalwData4$Age_Cat,
-                                  levels = c(1,2,3,4, 5),
-                                  labels = c("0-19", "20-39", "40-59", "60-79", "80+"))
-      
-      CalwData4 <- CalwData4[complete.cases(CalwData4),]
-      
-      boxplot(CalwData4$delayed.testing~CalwData4$traveled, col="skyblue", main='Days to take Test Since Symptoms by Previous Travel', xlab="Traveled", ylab="# of Days Delayed Testing")
-      
-    })
-    
-    
-    output$delayed2 <- renderPlot({
-      CalwData2 <- 
-        CalwData %>% 
-        mutate(delayed.testing = ymd(indexcase)- symptoms.onsetDate)
-      
-      mu <- CalwData2 %>% 
-        group_by(contactSourceCase) %>% 
-        summarize (grp.mean = mean(delayed.testing, na.rm = TRUE)) %>% 
-        ungroup()
-      
-      ggplot() + 
-      geom_density(CalwData2[CalwData2$contactSourceCase %in% input$contact,], mapping = aes(delayed.testing, fill = contactSourceCase), na.rm = TRUE, alpha=0.4) + 
-        geom_vline(mu[mu$contactSourceCase %in% input$contact,], mapping = aes(xintercept = grp.mean), linetype="dashed") +
-        geom_label_repel(mu[mu$contactSourceCase %in% input$contact,], mapping = aes(x = grp.mean, y= 0.2, label = paste(round(grp.mean, 3)), fill = input$contact), colour="white") +
-        xlim(c(-5, 10)) + 
-        theme_minimal() + 
-        ggtitle ("Delayed Testing by Known Contact History") + 
-        theme(plot.title = element_text(hjust = 0.5, size = 14, face = "bold")) + 
-        xlab("Number of Days") + 
-        ylab("Density") + 
-        guides(fill=guide_legend(title="Known Contact")) + 
-        scale_fill_brewer(palette="Dark2")
-        
-    })
-    
-   
-    output$boxplot2 <- renderPlot({
-      CalwData4 <- 
-        CalwData %>% 
-        mutate(delayed.testing = ymd(indexcase)- symptoms.onsetDate) %>%
-        select(c(delayed.testing, age, pregnant, traveled, contactSourceCase, sex)) %>% 
-        
-        mutate(Age_Cat = ifelse(age == '0-4' | age == '5-9' | age == '10-14' | age == '15-19', 1,
-                                ifelse(age == '20-24' | age == '25-29' | age == '30-34' | age == '35-39', 2,
-                                       ifelse(age == '40-44' | age == '45-49' | age == '50-54' | age == '55-59', 3,
-                                              ifelse(age == '60-64' | age == '65-69' | age == '70-74' | age == '75-79', 4, 5))))) %>% 
-        select(-age)
-      
-      
-      CalwData4$delayed.testing <- as.numeric(CalwData4$delayed.testing)
-      CalwData4$Age_Cat <- factor(CalwData4$Age_Cat,
-                                  levels = c(1,2,3,4, 5),
-                                  labels = c("0-19", "20-39", "40-59", "60-79", "80+"))
-      
-      CalwData4 <- CalwData4[complete.cases(CalwData4),]
-      
-      boxplot(CalwData4$delayed.testing~CalwData4$contactSourceCase, col="skyblue", main='Delayed Testing by Known Contact', xlab="Known Contact", ylab="# of Days Delayed Testing")
-      
-    })
-    output$delayed3 <- renderPlot({
-      CalwData2 <- 
-        CalwData %>% 
-        mutate(delayed.testing = ymd(indexcase)-symptoms.onsetDate)
-      
-      mu <- CalwData2 %>% 
-        group_by(sex) %>% 
-        summarize (grp.mean = mean(delayed.testing, na.rm = TRUE)) %>% 
-        ungroup()
-      
-      ggplot() + 
-        geom_density(CalwData2[CalwData2$sex %in% input$sex,], mapping = aes(delayed.testing, fill = sex), na.rm = TRUE, alpha = 0.4) + 
-        geom_vline(mu[mu$sex %in% input$sex,], mapping = aes(xintercept = grp.mean), linetype="dashed") +
-        geom_label_repel(mu[mu$sex %in% input$sex,], mapping = aes(x = grp.mean, y= 0.2, label = paste(round(grp.mean, 3)), fill = input$sex), colour="white") +
-        xlim(c(-5, 10)) + 
-        theme_minimal() + 
-        ggtitle ("Delayed Testing by Sex") + 
-        theme(plot.title = element_text(hjust = 0.5, size = 14, face = "bold")) + 
-        xlab("Number of Days") + 
-        ylab("Density") + 
-        guides(fill=guide_legend(title="Sex")) + 
-        scale_fill_brewer(palette="Dark2") 
-       
-
-    })
-    
-    output$boxplot3 <- renderPlot({
-      CalwData4 <- 
-        CalwData %>% 
-        mutate(delayed.testing = ymd(indexcase)- symptoms.onsetDate) %>%
-        select(c(delayed.testing, age, pregnant, traveled, contactSourceCase, sex)) %>% 
-        
-        mutate(Age_Cat = ifelse(age == '0-4' | age == '5-9' | age == '10-14' | age == '15-19', 1,
-                                ifelse(age == '20-24' | age == '25-29' | age == '30-34' | age == '35-39', 2,
-                                       ifelse(age == '40-44' | age == '45-49' | age == '50-54' | age == '55-59', 3,
-                                              ifelse(age == '60-64' | age == '65-69' | age == '70-74' | age == '75-79', 4, 5))))) %>% 
-        select(-age)
-      
-      
-      CalwData4$delayed.testing <- as.numeric(CalwData4$delayed.testing)
-      CalwData4$Age_Cat <- factor(CalwData4$Age_Cat,
-                                  levels = c(1,2,3,4, 5),
-                                  labels = c("0-19", "20-39", "40-59", "60-79", "80+"))
-      
-      CalwData4 <- CalwData4[complete.cases(CalwData4),]
-      
-      boxplot(CalwData4$delayed.testing~CalwData4$sex, col="skyblue", main='Delayed Testing by Sex', xlab="Sex", ylab="# of Days Delayed Testing")
-      
-    })
-    
-    output$delayed4 <- renderPlot({
-      CalwData2 <- 
-        CalwData %>% 
-        mutate(delayed.testing = ymd(indexcase)- symptoms.onsetDate)
-      
-      mu <- CalwData2 %>% 
-        group_by(pregnant) %>% 
-        summarize (grp.mean = mean(delayed.testing, na.rm = TRUE)) %>% 
-        ungroup()
-    
-      
-      ggplot() + 
-      geom_density(CalwData2[CalwData2$pregnant %in% input$pregnant,], mapping = aes(delayed.testing, fill = pregnant), na.rm = TRUE, alpha = 0.4) + 
-        geom_vline(mu[mu$pregnant %in% input$pregnant,], mapping = aes(xintercept = grp.mean), linetype="dashed") +
-        geom_label_repel(mu[mu$pregnant %in% input$pregnant,], mapping = aes(x = grp.mean, y= 0.2, label = paste(round(grp.mean, 3)), fill = input$pregnant), colour="white") +
-        xlim(c(-5, 10)) + 
-        theme_minimal() + 
-        ggtitle ("Delayed Testing by Pregnancy Status") + 
-        theme(plot.title = element_text(hjust = 0.5, size = 14, face = "bold")) + 
-        xlab("Number of Days") + 
-        ylab("Density") + 
-        guides(fill=guide_legend(title="Pregnancy Status")) + 
-        scale_fill_brewer(palette="Dark2")
-      
-      
-    })
-    
-    output$boxplot4 <- renderPlot({
-      CalwData4 <- 
-        CalwData %>% 
-        mutate(delayed.testing = ymd(indexcase)- symptoms.onsetDate) %>%
-        select(c(delayed.testing, age, pregnant, traveled, contactSourceCase, sex)) %>% 
-        
-        mutate(Age_Cat = ifelse(age == '0-4' | age == '5-9' | age == '10-14' | age == '15-19', 1,
-                                ifelse(age == '20-24' | age == '25-29' | age == '30-34' | age == '35-39', 2,
-                                       ifelse(age == '40-44' | age == '45-49' | age == '50-54' | age == '55-59', 3,
-                                              ifelse(age == '60-64' | age == '65-69' | age == '70-74' | age == '75-79', 4, 5))))) %>% 
-        select(-age)
-      
-      
-      CalwData4$delayed.testing <- as.numeric(CalwData4$delayed.testing)
-      CalwData4$Age_Cat <- factor(CalwData4$Age_Cat,
-                                  levels = c(1,2,3,4, 5),
-                                  labels = c("0-19", "20-39", "40-59", "60-79", "80+"))
-      
-      CalwData4 <- CalwData4[complete.cases(CalwData4),]
-      
-      boxplot(CalwData4$delayed.testing~CalwData4$pregnant, col="skyblue", main='Delayed Testing by Pregnancy Status', xlab="Pregnacy Status", ylab="# of Days Delayed Testing")
-      
-    })
-    
-    ####
-    
     #### Tab E
     
  
