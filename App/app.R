@@ -38,9 +38,16 @@ ui<- fluidPage(
       ),
       tabPanel("A", fluid = TRUE,
                sidebarLayout(
-                 sidebarPanel(),
+                 sidebarPanel(
+                   sliderInput("map_date",
+                               "Dates:",
+                               min = as.Date("2020-03-04","%Y-%m-%d"),
+                               max = as.Date("2021-05-11","%Y-%m-%d"),
+                               value=as.Date("2020-03-20"),
+                               timeFormat="%Y-%m-%d")
+                 ),
                  mainPanel(
-                   plotOutput('covid_map')
+                   leafletOutput('covid_map')
                  )
                )
       ),
@@ -154,16 +161,11 @@ server <- function(input, output) {
     pal <- colorNumeric("viridis", NULL)
     nycounties <- rgdal::readOGR("../DE-counties.geojson")
     
-    #nycounties <- FROM_GeoJson("../DE-counties.geojson")
-    
-    output$covid_map <- renderPlot({
-      m <- leaflet(nycounties)
-      m %>% addTiles() %>% addPolygons(stroke = FALSE, smoothFactor = 0.3, fillOpacity = 0.7,
-                  fillColor = ~pal(log10(unlist(dat[10,-1],use.names = FALSE)+1)),
-                  label = ~paste0(GEN, ": ", formatC(unlist(dat[10,],use.names = FALSE)+1, big.mark = ","))) %>%
-      addLegend(pal = pal, title='new cases per 1000 in last 7 days',values = ~log10(unlist(dat[10,],use.names = FALSE)+1), opacity = 1.0,
+    output$covid_map <- renderLeaflet({leaflet(nycounties)%>% addTiles() %>% addPolygons(stroke = FALSE, smoothFactor = 0.3, fillOpacity = 0.7,
+                  fillColor = ~pal(log10(unlist(dat[dat$time_iso8601 == input$map_date,-1],use.names = FALSE)+1)),
+                  label = ~paste0(GEN, ": ", formatC(unlist(dat[dat$time_iso8601 == input$map_date,-1],use.names = FALSE)+1, big.mark = ","))) %>%
+      addLegend(pal = pal, title='new cases per 1000 in last 7 days',values = ~log10(unlist(dat[dat$time_iso8601 == input$map_date,-1],use.names = FALSE)+1), opacity = 1.0,
                 labFormat = labelFormat(transform = function(x) round(10^x)))
-      m
     })
     
     
