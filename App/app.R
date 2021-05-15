@@ -213,7 +213,7 @@ ui<- fluidPage(
                fluidRow(
                  column(4,
                         h4("Symptom Distribution in Total Group"),
-                        plotlyOutput("pieall"),
+                        plotlyOutput("pieallAM"),
                        
                         
                  )),
@@ -224,7 +224,7 @@ ui<- fluidPage(
                  column(4,
                         h3("Symptom Distribution by Age"),
                         
-                        selectInput('agegroup', "Select Age Group",
+                        selectInput('agegroupAM', "Select Age Group",
                                     choices = list('0-4','5-9','10-14','15-19','20-24','25-29',
                                                    '30-34','35-39','40-44','45-49','50-54',
                                                    '55-59','60-64','65-69','70-74','75-79',
@@ -232,7 +232,7 @@ ui<- fluidPage(
                                     selected = '0-4'
                         ),
                         br(),
-                        plotlyOutput('piesub'),
+                        plotlyOutput('piesubAM'),
                         br(),
                         br(),
                         br(),
@@ -249,7 +249,7 @@ ui<- fluidPage(
                        br()),
               
                  column(6,
-                        plotlyOutput("bar_age")
+                        plotlyOutput("bar_ageAM")
                  )),
                  fluidRow(
                    column(1,),
@@ -257,7 +257,7 @@ ui<- fluidPage(
                    h3("Age binned in 20 years interval"))),
                  fluidRow(
                  column(5,
-                        plotlyOutput("bar_age_grouped")
+                        plotlyOutput("bar_age_groupedAM")
                  ),
                  column(6,
                         h4("Test for group difference "),
@@ -268,20 +268,20 @@ ui<- fluidPage(
                            character of analysis, no significance level was set, but acutal p-value are displayed"),
                         br(),
                         br(),
-                        selectInput('soi_age', "Select Symptom",
+                        selectInput('soi_ageAM', "Select Symptom",
                                     choices = list("feeling ill","fever","shivering","chills sweats","muscle pain",
                                                    "headache","difficulty breathing","cough","sore throat","runny nose",
                                                    "nausea","diarrhea","loss of smell","loss of taste"),
                                     selected = 'loss of taste'
                         ),
                         br(),
-                        selectInput('ref_age', "Select reference group",
+                        selectInput('ref_ageAM', "Select reference group",
                                     choices = list("0-19","20-39","40-59","60-79","80+"),
                                     selected = '0-19'),
                       
                         br(),
                         br(),
-                        plotlyOutput('bar_age_grouped_fischer')
+                        plotlyOutput('bar_age_grouped_fischerAM')
                         
                  )),
                  ),
@@ -302,7 +302,7 @@ ui<- fluidPage(
                br(),
                fluidRow(
                  column(5,
-                    plotlyOutput('bar')
+                    plotlyOutput('barAM')
                     ),
                   column(7,
                          h4("Test for group difference "),
@@ -314,14 +314,14 @@ ui<- fluidPage(
                          br(),
                          br(),
                          br(),
-                         selectInput('soi', "Select Symptom",
+                         selectInput('soiAM', "Select Symptom",
                                      choices = list("feeling ill","fever","shivering","chills sweats","muscle pain",
                                                     "headache","difficulty breathing","cough","sore throat","runny nose",
                                                     "nausea","diarrhea","loss of smell","loss of taste"),
                                      selected = 'loss of taste'
                          ),
                          br(),
-                         selectInput('ref', "Select reference group",
+                         selectInput('refAM', "Select reference group",
                                      choices = list("before","immediate","early","late"),
                                      selected = 'before'
                          ),
@@ -330,7 +330,7 @@ ui<- fluidPage(
                          
                          br(),
                          br(),
-                        plotlyOutput('fischer')
+                        plotlyOutput('fischerAM')
                          ),
                )
       )))),
@@ -417,7 +417,7 @@ ui<- fluidPage(
                sidebarLayout(
                  sidebarPanel(),
                  mainPanel(
-                   plotOutput("predict")
+                   plotOutput("ordinalmodelAM")
                  )
                )
       ),
@@ -468,7 +468,7 @@ server <- function(input, output) {
   
     load('../CalwData.RData')
     #Convert reportDate from string to actual date factor
-    CalwData$reportDate <- as.Date(CalwData$reportDate, "%Y-%m-%d")
+    #CalwData$reportDate <- as.Date(CalwData$reportDate, "%Y-%m-%d")
   CalwData %<>%
     mutate(
       testingdelay= ymd(indexcase)- symptoms.onsetDate,
@@ -1126,7 +1126,7 @@ server <- function(input, output) {
     
     
     
-    output$pieall <- renderPlotly({
+    output$pieallAM <- renderPlotly({
      plot_ly(Symptoms, labels = ~symptom, values = ~n, type = 'pie',
                    textposition = 'inside',
                    textinfo = 'label+percent',
@@ -1143,8 +1143,8 @@ server <- function(input, output) {
     
     })
     
-    output$piesub <- renderPlotly({
-      age_sub=input$agegroup
+    output$piesubAM <- renderPlotly({
+      age_sub=input$agegroupAM
       fig_sub = CalwData %>%
         filter(age==age_sub)%>%
         dplyr::select(contains("symptoms."))%>%
@@ -1171,7 +1171,7 @@ server <- function(input, output) {
       
           })
     
-    output$bar_age <- renderPlotly({
+    output$bar_ageAM <- renderPlotly({
       Symptom_distribution_age=CalwData %>%
         dplyr::select(c(age,contains("symptoms.")))%>%
         dplyr::select_if(is.factor)%>%
@@ -1196,7 +1196,7 @@ server <- function(input, output) {
     })
     
     
-    output$bar_age_grouped <- renderPlotly({
+    output$bar_age_groupedAM <- renderPlotly({
     Symptom_distribution_age_g=CalwData %>%
       dplyr::select(c(age,contains("symptoms.")))%>%
       dplyr::select_if(is.factor)%>%
@@ -1227,7 +1227,7 @@ server <- function(input, output) {
     ggplotly(barplot_grouped)%>% layout(height = 800, width = 500)
     })
     
-    output$bar_age_grouped_fischer= renderPlotly({
+    output$bar_age_grouped_fischerAM= renderPlotly({
       
       Symptom_distribution_age_g=CalwData %>%
         dplyr::select(c(age,contains("symptoms.")))%>%
@@ -1248,8 +1248,8 @@ server <- function(input, output) {
         mutate(symptom=str_replace(symptom,"symptoms.","")%>%fix_symptoms)
       
       
-      symptom_of_interes=input$soi_age
-      bin1=input$ref_age
+      symptom_of_interes=input$soi_ageAM
+      bin1=input$ref_ageAM
       cof=Symptom_distribution_age_g$age_grouped
       
       fischer_test_function_gen=function(x, bin1, cof){
@@ -1308,7 +1308,7 @@ server <- function(input, output) {
     
     #piealldelay
     
-    output$bar <- renderPlotly({
+    output$barAM <- renderPlotly({
       Symptom_distribution_delay=CalwData %>%
       dplyr::select(c(testingdelay,contains("symptoms.")))%>%
       dplyr::select(-c(symptoms.temperature,symptoms.symptomatic)) %>%
@@ -1336,10 +1336,10 @@ server <- function(input, output) {
       ggplotly(barplot_delay)%>% layout(height = 800, width = 500)
     })
     
-    output$fischer <- renderPlotly({
+    output$fischerAM <- renderPlotly({
       #renderPlot({
-      symptom_of_interes=input$soi
-      bin1=input$ref
+      symptom_of_interes=input$soiAM
+      bin1=input$refAM
       
       fischer_test_function=function(x, bin1){
         plot_dataframe=NULL
@@ -1416,7 +1416,7 @@ server <- function(input, output) {
     #### Tab H
     
     
-    output$predict <- renderPlot({
+    output$ordinalmodelAM <- renderPlot({
       
       Symptom_distribution_delay=CalwData %>%
         dplyr::select(c(testingdelay,contains("symptoms.")))%>%
