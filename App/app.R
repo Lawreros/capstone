@@ -440,6 +440,8 @@ ui<- fluidPage(
                  ),
                  mainPanel(
                    h2('COVID-19 Cases by Age Time Trend: December 2020 - May 2021'),
+                        h3('Total Cases Over Time:'),
+                   plotOutput('timetrend3'),
                    h3('Five Year Age Bins:'),
                    plotOutput('timetrend'),
                    h3('Twenty Year Age Bins:'),
@@ -1457,11 +1459,25 @@ server <- function(input, output) {
     
     ####
    
-    
-    
      #### Time Trend
     
     #Plot the number of reports for each age each day
+    
+    output$timetrend3 <- renderPlot({
+      
+      Calwnew <- CalwData %>%
+        select(reportDate, age) %>%
+        group_by(reportDate) %>%
+        summarise(count = n())
+      
+      g<- ggplot(Calwnew, aes(x =reportDate, y= count))+ geom_point() + scale_x_date() +
+        geom_smooth(method = "loess", size = 1.5) + 
+        labs(title = "Total Number COVID-19 Cases Over Time", x = "Month", y = "Number of Cases")
+      g
+      
+    })
+    
+    
     output$timetrend <- renderPlot({
       
       Calwnew <- CalwData %>%
@@ -1496,6 +1512,10 @@ server <- function(input, output) {
       g
       
     })
+    
+    
+     
+    
     
     
 
