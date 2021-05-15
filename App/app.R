@@ -21,7 +21,6 @@ library(magrittr)
 library(lubridate)
 library(ggsci)
 library(ggrepel)
-library(repmis)
 
 ui<- fluidPage(
     tabsetPanel(
@@ -168,8 +167,9 @@ ui<- fluidPage(
                         h4("Test for group difference "),
                         br(),
                         br(),
-                        br(),
-                        br(),
+                        p("Fishers test was chosen due small counts in some subgroups.
+                        Due to multiple testing and no pre-analaysis plan with correction for multiple testing due to exploratory 
+                           character of analysis, no significance level was set, but acutal p-value are displayed"),
                         br(),
                         br(),
                         selectInput('soi_age', "Select Symptom",
@@ -183,7 +183,6 @@ ui<- fluidPage(
                                     choices = list("0-19","20-39","40-59","60-79","80+"),
                                     selected = '0-19'),
                       
-                        br(),
                         br(),
                         br(),
                         plotlyOutput('bar_age_grouped_fischer')
@@ -210,10 +209,12 @@ ui<- fluidPage(
                     plotlyOutput('bar')
                     ),
                   column(7,
+                         h4("Test for group difference "),
                          br(),
                          br(),
-                         br(),
-                         br(), 
+                         p("Fishers test was chosen due small counts in some subgroups.
+                        Due to multiple testing and no pre-analaysis plan with correction for multiple testing due to exploratory 
+                           character of analysis, no significance level was set, but acutal p-value are displayed"),
                          br(),
                          br(),
                          br(),
@@ -229,7 +230,7 @@ ui<- fluidPage(
                                      selected = 'before'
                          ),
                          
-                         br(),
+                         
                          br(),
                          br(),
                         plotlyOutput('fischer')
@@ -240,41 +241,74 @@ ui<- fluidPage(
       tabPanel("Readme File ", fluid = TRUE,
                
                mainPanel(
-                 h3("The district of Calw"),
+                 h3("Disclaimer"),
+                 p("The following tool was developed for a class project. 
+                 Please be aware that the predictions calculated by this tool rely soley on the available 
+                regressors and DO NOT NECESSARILY IMPLY CAUSATION by said regressors. 
+                 The models are not validated and should not be used for any decision making.
+                 The data might differ from official records because a subset of participants were used."),
                  br(),
+                 h3("The district of Calw"),
                  h4("General information about the district"),
-                 p("Calw is a district (german <Landkreis>) centrally located in the state (german: <Bundesland>) 
+                 p("Calw is a district (german <Landkreis>) centrally located in 
                    Baden Wuerttemberg , Germany. The district is approximately 800 square kilometers, 
-                   and there a total of 25 cities and municipalities in the district of Calw."),
+                   with approximately 160.000 people living in the 25 cities and municipalities of the district.
+                  These consist of 10 cities - Calw city, Altensteig, Bad Herrenalb, Bad Liebenzell,
+                   Bad Teinach-Zavelstein, Bad Wildbad, Haiterbach, Nagold, Neubulach and Wildberg -
+                   and 15 municipalities - Althengstett, Dobel, Ebhausen, Egenhausen, Enzkloesterle, 
+                   Gechingen, Hoefen, Neuweiler, Oberreichenbach, Ostelsheim, Rohrdorf, Schoemberg,
+                   Simmersfeld, Simmozheim und Unterreichenbach."),
                  h4("The health department"),
-                 p("The health department....."),
+                 p("The health department is part of the district office, which is on the one hand a
+                  municipal self-governing authority and on the other hand the lower 
+                 state administrative authority with diverse tasks. For more
+                 information please see the official homepage of the district office: lra-calw.de"),
+                 h4("The health department and the COVID-19 pandemic"),
+                 p("With the corona pandemic, a completely new structure was set up within the health department. 
+                 Depending on the incidence, up to 80 people were / are employed full-
+                 time and part-time coping with the pandemic. The military <KSK Kommando Calw> also supports the
+                 tracking of contact persons with up to 20 soldiers.
+                 Early on at the beginning of the second wave, the Calw District Office decided to digitize the
+                 processes and use the Sormas software (see data source)"),
+                 
                  h3("The Data used in this App"),
                  h4("Data source"),
                  p("The data used here is data from SORMAS (Surveillance, Outbreak Response Management and Analysis 
                  System) used by the local health department of the district of Calw. 
                  SORMAS is an e-health software developed by the Helmholtz Center for Infection Research 
-                 and the German Center for Infection Research for the management of measures to combat epidemics. 
-                 It was implemented at the health department in Calw in November 2020 and data is avaible starting 
-                 from December 1st 2020. 
+                 and the German Center for Infection Research for the management of measures to combat 
+                 epidemics. With the support of the federal and state governments, the software is 
+                 made available to the health authorities free of charge. The program is intended to enable
+                 data to be exchanged between the various bodies in the corona pandemic.
+                 It was implemented at the health department in Calw in October 2020 and full data set ares 
+                avaible starting from December 1st 2020. The health department is using SORMAS for 
+                contact tracking, case recording and outbreak management
                  More information about SORMAS can be found on the official SORMAS 
                  homepage: https://www.sormas-oegd.de/"),
                  h4("Data extraction and annoymisation"),
-                 p("Data extraction and anonymization was performed by Iris Brilhaus. 
+                 p(" Case recording data was extraction and anonymized by Iris Brilhaus, MD in the Corona
+                 task force of district office Calw. 
                  Initial data extraction was performed on April 21st 2021 and was repeated on May 13th 2021."),
                  h4("Data cleaning and translation"),
                  p("Data cleaning and translation in English was performed by Alexandra Malinovska.
-                 Only the cleaned and translated data is avaible here. 
+                 Only the cleaned and translated data is available here. The data set might be different from 
+                  official records, because some participants with missing data were excluded. Missing data
+                  could be attributed 
+                   to missing laboratory test, which were captured with a different software. Since analysis 
+                    should include only patients with a recorded positive laboratory test, only these 
+                    participants are contained in the data set. 
                    Questions about data cleaning and translation can be directed to her."),
-                 h3("Disclaimer"),
-                 p("The following tool was developed for a class project. 
-                 Please be aware that the predictions calculated by this tool rely soley on the available regressors 
-                 and DO NOT NECESSARILY IMPLY CAUSATION by said regressors. 
-                 The models are not validated and should not be used for any decision making."),
+                 h4("Data dictionary"),
+                 p("..."),
                  h3("Acknowledgment"),
-                 p(" We want to thank the health department Calw for providing this interesting and real-life data.
+                 p(" We want to thank the health department Calw for providing this interesting and real-life 
+                 data. We thank Dr. Frank Wiehe, first state official and Dr. Philip-Rene' Retzbach, legal 
+                counsel for their support. 
                  A special thank you to Iris Brilhaus for the introduction into the data and 
-                 health department processes and all fruitful discussions in her free-time. ")
-
+                 health department processes and all fruitful discussions in her free time. "),
+                 h3("Maintenance"),
+                 p(" The last data extraction was performed on May 13, 2021, further data updates and 
+                  maintenance of the app will be discussed with the health department Calw")
                )
                
       ),
@@ -628,9 +662,9 @@ server <- function(input, output) {
         return(as.data.frame(plot_dataframe))
       }
       
-      colordata=as.data.frame(cbind(symptom=levels(Symptom_distribution_delay$symptom), 
-                                    level=1:nlevels(Symptom_distribution_delay$symptom),
-                                    color=pal_simpsons("springfield")(nlevels(Symptom_distribution_delay$symptom))))
+      colordata=as.data.frame(cbind(symptom=levels(Symptom_distribution_age_g$symptom), 
+                                    level=1:nlevels(Symptom_distribution_age_g$symptom),
+                                    color=pal_simpsons("springfield")(nlevels(Symptom_distribution_age_g$symptom))))
       
       farbe=colordata%>%filter(symptom==symptom_of_interes)%>%select(color)%>%as.character()
       
