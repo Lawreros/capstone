@@ -25,7 +25,7 @@ A Multiple Linear Regression model was fitted for *delayed testing* as the depen
 
 #### Variables Used: 
 
-*Delayed Testing*: Calculated by the number of days since symptom onset to an individual's first positive result test. Negative days of delayed testing can be explained if the individual was tested before symptom onset due to a known outbreak or contact, or vulnerable settings, such as nursing homes.
+- *Delayed Testing*: Calculated by the number of days since symptom onset to an individual's first positive result test. Negative days of delayed testing can be explained if the individual was tested before symptom onset due to a known outbreak or contact, or vulnerable settings, such as nursing homes.
 
 #### System/Library Requirements:
 
