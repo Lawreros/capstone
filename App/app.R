@@ -585,11 +585,11 @@ server <- function(input, output) {
         geom_label_repel(mu[mu$traveled %in% input$traveled,], mapping = aes(x = grp.mean, y= 0.2, label = paste(round(grp.mean, 3)), fill = input$traveled), colour="white") +
         xlim(c(-5, 10))+ 
         theme_minimal() + 
-        ggtitle ("Delayed Testing by Pregnancy Status") + 
+        ggtitle ("Delayed Testing by Travel History") + 
         theme(plot.title = element_text(hjust = 0.5, size = 14, face = "bold")) + 
         xlab("Number of Days") + 
         ylab("Density") + 
-        guides(fill=guide_legend(title="Pregnancy Status")) + 
+        guides(fill=guide_legend(title="Travel History")) + 
         scale_fill_brewer(palette="Dark2")
       
     })
