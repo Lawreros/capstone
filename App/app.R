@@ -151,7 +151,7 @@ ui<- fluidPage(
                sidebarLayout(
                  sidebarPanel(h3('Summary of Analysis:'),
                               h5('In this tab, we evaluate the association between sex, age-category, and condition.'),
-                              h5('Condition was defined as dead if person was killed from COVID-19 infection.'),
+                              h5('Condition was defined as dead if person died within the observation period.'),
                               h5('Persons with unknown or missing sex, age, or condition were excluded from analysis.'),
                               h5('Chi-square tests were used to test for significant associations.')
                    ),
