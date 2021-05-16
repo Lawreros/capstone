@@ -1510,7 +1510,7 @@ server <- function(input, output) {
       scale_fill_simpsons()+
       xlab(paste("\n","symptoms")) + 
       ylab(paste("Propability"))+ 
-      ggtitle("test immediately before symptoms occur")
+      ggtitle("test before symptoms occur")
     
     
     ggplotly(barplot_comparison_before)
