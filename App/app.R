@@ -397,7 +397,7 @@ ui<- fluidPage(
                     participants are contained in the data set. 
                    Questions about data cleaning and translation can be directed to her."),
                  h4("Data dictionary"),
-                 p("..."),
+                 p("The data dictionary can be found in the Readme file of this App on Github."),
                  h3("Acknowledgment"),
                  p(" We want to thank the health department Calw for providing this interesting and real-life 
                  data. We thank Dr. Frank Wiehe, first state official and Dr. Philip-Rene' Retzbach, legal 
@@ -485,7 +485,7 @@ server <- function(input, output) {
   
   
   
-    load('../CalwData.RData')
+    load('CalwData.RData')
     #Convert reportDate from string to actual date factor
     #CalwData$reportDate <- as.Date(CalwData$reportDate, "%Y-%m-%d")
   CalwData %<>%
@@ -1569,6 +1569,8 @@ server <- function(input, output) {
           data= rep("predicted",14),
           n = observed$n)
       
+      comparison= rbind(predict,observed)
+      
       bbarplot_comparison_immediate= ggplot(comparison, aes(x=symptom, y=imm,fill=data))+
         geom_col( position=position_dodge())+
         theme_minimal()+
@@ -1636,6 +1638,8 @@ server <- function(input, output) {
           data= rep("predicted",14),
           n = observed$n)
       
+      comparison= rbind(predict,observed)
+      
       barplot_comparison_early= ggplot(comparison, aes(x=symptom, y=ear,fill=data))+
         geom_col( position=position_dodge())+
         theme_minimal()+
@@ -1702,6 +1706,7 @@ server <- function(input, output) {
         mutate(
           data= rep("predicted",14),
           n = observed$n)
+      comparison= rbind(predict,observed)
       
       barplot_comparison_late= ggplot(comparison, aes(x=symptom, y=late,fill=data))+
         geom_col( position=position_dodge())+
