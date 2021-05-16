@@ -14,8 +14,9 @@ library(dplyr)
 library(tidyr)
 library(leaflet)
 library(geojsonR)
+library(shinythemes)
 
-ui<- fluidPage(
+ui<- fluidPage(theme = shinytheme('slate'),
     tabsetPanel(
       tabPanel("Data Summary", fluid = TRUE,
                sidebarLayout(
