@@ -413,7 +413,7 @@ ui<- fluidPage(
       
       
 
-      tabPanel("Symptoms - Ordinal Regression on delayed testing", fluid = TRUE,
+      tabPanel("Symptoms - Ordinal Regression on testing time", fluid = TRUE,
 
                p("After the descriptive analysis, we wanted to fit a model to try to answer:
                  Are symptoms associated with a specific testing time and can we model this in a regression?
