@@ -414,7 +414,7 @@ ui<- fluidPage(
       
 
       tabPanel("Symptoms - Ordinal Regression on testing time", fluid = TRUE,
-
+               h3( "Ordinal Regression on testing time using symptoms"),
                p("After the descriptive analysis, we wanted to fit a model to try to answer:
                  Are symptoms associated with a specific testing time and can we model this in a regression?
                  We fit an ordinal model and compared predicted and observed probability"), 
@@ -429,7 +429,7 @@ ui<- fluidPage(
                    plotlyOutput("OMplotEarlyAM")),
                  column(6,
                    plotlyOutput("OMplotLateAM"))),
-              
+                h3( "Model's Estimate including 95% CI"), 
                tableOutput("ordinalmodelAM")
                
                  
