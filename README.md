@@ -101,7 +101,7 @@ Required Libraries:
 
 #### Credits: 
 Kate Kim, MPH Candidate '21, Johns Hopkins University, Bloomberg School of Public Health ([https://github.com/ks00jinkim](url))
-Lauren Norris,
+Lauren Norris, MHS Candidate '21, Johns Hopkins University, Bloomberg School of Public Health ([https://github.com/ldnorris](url))
 Alexandra Malinovska, MD, ScM Candidate, Department of Epidemiology, Johns Hopkins Bloomberg School of Public Health ([https://github.com/Alexa-Malina](url))
 Ross Lawrence
 
