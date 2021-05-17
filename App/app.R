@@ -435,7 +435,7 @@ ui<- fluidPage(
       
 
         
-         tabPanel("Time Trend", fluid = TRUE,
+         tabPanel("COVID-19 Time Trend in Calw", fluid = TRUE,
                sidebarLayout(
                  sidebarPanel(
                    h3('Select Age Category:'),
