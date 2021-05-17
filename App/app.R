@@ -68,7 +68,7 @@ ui<- fluidPage(
       tabPanel("Delayed Testing - Descriptive", fluid = TRUE,
                
                sidebarLayout(
-                 sidebarPanel(p(strong("How to use: Select criteria on the left panel and click on respective tab to view results.")),
+                 sidebarPanel(p(em("How to use: Select criteria for variables and click on respective tab to view results.")),
                               h4("Select by:"),
                               checkboxGroupInput("ages2", label=h4("Age Group"),
                                                  choices = list("0-19" = "0-19","20-39" = "20-39","40-59" = "40-59","60-79" = "60-79","80+" = "80+"),
@@ -88,12 +88,11 @@ ui<- fluidPage(
                 ),
                  mainPanel(
                    h3("Density Curves of Delay in Testing"), 
-                   p("The delayed testing variable is calculated by the number of days since symptom onset to an individual's first (positive result) test."),
-                   p(em("Negative days of delayed testing can be explained if the individual was tested before symptom onset due to a known outbreak or contact, or vulnerable settings, such as nursing homes.")),
-                   p("The density curves below show the distribution of days until testing by age, traveled status, known contact history, sex, and pregnancy status."),
+                   p("The density curves below show the distribution of days until testing by age, travel history, known contact source, sex, and pregnancy status."),
                    p("The dashed lines indicate the mean for each selected group."),
         
                    tabsetPanel(
+                   tabPanel("Overall", plotOutput('delayedtotal')),
                    tabPanel("By Age", plotOutput('delayed'), h4("Boxplot Analysis"), plotOutput('boxplot')),
                    tabPanel("Previous Travel", plotOutput('delayed1'), h4("Boxplot Analysis"), plotOutput('boxplot1')),
                    tabPanel("Known Contact", plotOutput('delayed2'), h4("Boxplot Analysis"), plotOutput('boxplot2')),
@@ -106,7 +105,7 @@ ui<- fluidPage(
       
       tabPanel("Delayed Testing - MLR", fluid = TRUE,
                sidebarLayout(
-                 sidebarPanel(p(strong("How to use: Select criteria and click on Calculator tab to view results.")),
+                 sidebarPanel(p(em("How to use: Select criteria for variables below to view results.")),
                               h3("Select Features:"),
                               selectInput("ages3", label=h3("Age Category"),
                               choices = list("0-19" = "0-19","20-39" = "20-39","40-59" = "40-59","60-79" = "60-79","80+" = "80+"),
@@ -118,16 +117,20 @@ ui<- fluidPage(
                                choices = list("yes", "no","unknown"),
                                selected = "yes")
                  ),
-                 mainPanel(h3("Expected Delayed Testing using MLR"),
-                           tabsetPanel(
-                             tabPanel("MLR Table",
+                 mainPanel(h4("Expected Delayed Testing"),
+                           h4("Calculator"),
+                           h5("Expected number of days after symptoms onset individual takes COVID-19 test"),
+                           textOutput('linreg'),
+                           br(),
+                           br(),
+                           h4("Multiple Linear Regression Model"),
                                       p("Outcome is the number of days to take a COVID-19 test since onset of symptoms"), 
                                       p(strong("Codebook:")), 
                                       p(em("Age Category 0-19 = Reference")),
                                       p(em("Known Contact = Reference")),
                                       p(em("Traveled (yes) = Reference")), 
                                       htmlOutput('linear'),
-                                      h5("MLR interpretations"),
+                                      h5("MLR interpretations & Effect Plots"),
                                       p("The Intercept value of 2.19 is the expected mean number of days to take a test since symptoms onset if the individual is 0-19 years old, has a known Contact, and has traveled."), 
                                       p("If someone is 60-79 years they will have tested 0.84 days later than someone who is 0-19 years old with all other variables held constant (p<0.05)."), 
                                       p("If someone is over 80 years old, they will have tested 1.1 days earlier than someone who is 0-19 years old with all other variables held constant (p<0.05)."), 
@@ -137,13 +140,7 @@ ui<- fluidPage(
                                       p("If someone had no previous travel history, they will have tested 0.59 days later than someone who had tested with a previous travel history with all other variables held constant (p<0.05)."),
                                       plotOutput('linregplot3')
                                        ),
-                             tabPanel("Calculator",
-                                      h4("Expected number of days after symptoms onset individual takes COVID-19 test"),
-                                      textOutput('linreg'))
-                             
-                           )
-                 )
-               )),
+                            ))),
       
     
         
@@ -521,7 +518,29 @@ server <- function(input, output) {
     
     #### Tab "Delayed Testing - Descriptive" 
     
-    # Bar chart for delayed days
+    # Density Curves and Plots for Delayed days
+    output$delayedtotal <- renderPlot({
+    CalwData2 <- 
+      CalwData %>% 
+      filter(!is.na(symptoms.onsetDate)) %>% 
+      mutate(delayed.testing = ymd(indexcase)- symptoms.onsetDate)
+      
+
+    mu <- CalwData2 %>% 
+      summarize (grp.mean = mean(delayed.testing, na.rm = TRUE))
+    
+    ggplot()+
+      geom_density(CalwData2, mapping = aes(delayed.testing), fill="darkviolet", alpha=0.4) +
+      geom_vline(mu, mapping = aes(xintercept = grp.mean), linetype="dashed") +
+      geom_label_repel(mu, mapping = aes(x = grp.mean, y= 0.2, label = paste(round(grp.mean, 3))), fill = 'darkviolet', colour = 'white') +
+      xlim(c(-10, 14)) + 
+      theme_minimal() + 
+      ggtitle ("Delayed Testing") + 
+      theme(plot.title = element_text(hjust = 0.5, size = 14, face = "bold")) + 
+      xlab("Number of Days") + 
+      ylab("Density")
+    
+  })
     
     output$delayed <- renderPlot({
       CalwData2 <- 
@@ -599,11 +618,11 @@ server <- function(input, output) {
         geom_label_repel(mu[mu$traveled %in% input$traveled,], mapping = aes(x = grp.mean, y= 0.2, label = paste(round(grp.mean, 3)), fill = input$traveled), colour="white") +
         xlim(c(-5, 10))+ 
         theme_minimal() + 
-        ggtitle ("Delayed Testing by Pregnancy Status") + 
+        ggtitle ("Delayed Testing by Travel History") + 
         theme(plot.title = element_text(hjust = 0.5, size = 14, face = "bold")) + 
         xlab("Number of Days") + 
         ylab("Density") + 
-        guides(fill=guide_legend(title="Pregnancy Status")) + 
+        guides(fill=guide_legend(title="Travel History")) + 
         scale_fill_brewer(palette="Dark2")
       
     })
