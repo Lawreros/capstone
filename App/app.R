@@ -28,7 +28,8 @@ library(lubridate)
 library(ggsci)
 library(ggrepel)
 library(MASS) 
-
+library(plotly)
+library(knitr)
 
 
 ui<- fluidPage(
@@ -207,7 +208,7 @@ ui<- fluidPage(
 
                
       
-      tabPanel("G - Symptoms", fluid = TRUE,
+      tabPanel("Symptoms - Deskriptive analysis", fluid = TRUE,
                
                #h3("Symptom Distribution by Age"),
                fluidRow(
@@ -396,7 +397,7 @@ ui<- fluidPage(
                     participants are contained in the data set. 
                    Questions about data cleaning and translation can be directed to her."),
                  h4("Data dictionary"),
-                 p("..."),
+                 p("The data dictionary can be found in the Readme file of this App on Github."),
                  h3("Acknowledgment"),
                  p(" We want to thank the health department Calw for providing this interesting and real-life 
                  data. We thank Dr. Frank Wiehe, first state official and Dr. Philip-Rene' Retzbach, legal 
@@ -412,15 +413,28 @@ ui<- fluidPage(
       
       
 
-      tabPanel("H - predition testing", fluid = TRUE,
-
-               sidebarLayout(
-                 sidebarPanel(),
-                 mainPanel(
-                   plotOutput("ordinalmodelAM")
-                 )
-               )
-      ),
+      tabPanel("Symptoms - Ordinal Regression on testing time", fluid = TRUE,
+               h3( "Ordinal Regression on testing time using symptoms"),
+               p("After the descriptive analysis, we wanted to fit a model to try to answer:
+                 Are symptoms associated with a specific testing time and can we model this in a regression?
+                 We fit an ordinal model and compared predicted and observed probability"), 
+               br(), 
+               fluidRow(
+                 column(6,
+                   plotlyOutput("OMplotBeforeAM")),
+                 column(6,
+                   plotlyOutput("OMplotImmAM"))),
+               fluidRow(
+                 column(6,
+                   plotlyOutput("OMplotEarlyAM")),
+                 column(6,
+                   plotlyOutput("OMplotLateAM"))),
+                h3( "Model's Estimate including 95% CI"), 
+               tableOutput("ordinalmodelAM")
+               
+                 
+               ),
+    
       
 
         
@@ -471,7 +485,7 @@ server <- function(input, output) {
   
   
   
-    load('../CalwData.RData')
+    load('CalwData.RData')
     #Convert reportDate from string to actual date factor
     #CalwData$reportDate <- as.Date(CalwData$reportDate, "%Y-%m-%d")
   CalwData %<>%
@@ -1283,7 +1297,6 @@ server <- function(input, output) {
     })
     
     
-    #piealldelay
     
     output$barAM <- renderPlotly({
       Symptom_distribution_delay=CalwData %>%
@@ -1393,7 +1406,7 @@ server <- function(input, output) {
     #### Tab H
     
     
-    output$ordinalmodelAM <- renderPlot({
+    output$ordinalmodelAM <- renderTable({
       
       Symptom_distribution_delay=CalwData %>%
         dplyr::select(c(testingdelay,contains("symptoms.")))%>%
@@ -1426,36 +1439,289 @@ server <- function(input, output) {
     
     #  Predicted frequencies
     modelord <- polr(delay_binned ~ symptom, data = Symptom_distribution_delay_expand, Hess=TRUE, method="logistic")
-    #summary(modelord)
     
-    pred_data <- as_tibble(predict(modelord, type="probs")) 
-    #pred_data
+    tbl= cbind(as.data.frame(exp(modelord$coefficients)), exp(confint.default(modelord))) %>%
+      set_colnames(c( "estimate","Lower CI","Higher CI"))%>%
+      tibble::rownames_to_column(., "symptom")
     
+    tbl 
+    
+    })
+    
+    output$OMplotBeforeAM <- renderPlotly({
+      
+      Symptom_distribution_delay=CalwData %>%
+        dplyr::select(c(testingdelay,contains("symptoms.")))%>%
+        dplyr::select(-c(symptoms.temperature,symptoms.symptomatic)) %>%
+        filter(!is.na(testingdelay))%>%
+        mutate(delay_binned=case_when(
+          testingdelay<0~"before",
+          testingdelay%in%(0:2)~"immediate",
+          testingdelay%in%(3:5)~"early",
+          testingdelay>5~"late")%>%factor(levels = c("before","immediate","early","late")))%>%
+        dplyr::select(-testingdelay)%>%
+        gather(symptom, value, -delay_binned ) %>%
+        group_by(delay_binned,symptom,value) %>%
+        dplyr::summarize(n=n())%>%
+        filter(value=="yes")%>%
+        mutate(symptom=str_replace(symptom,"symptoms.","")%>%fix_symptoms)
+      
+      Symptom_distribution_delay_expand <- Symptom_distribution_delay %>%
+        uncount(n)
+      
+      #  Observed frequencies
+      observed=Symptom_distribution_delay_expand %>%
+        group_by(symptom) %>%
+        dplyr::summarize(n = n(), 
+                         before = sum(delay_binned == "before")/n,
+                         imm = sum(delay_binned == "immediate")/n,
+                         ear = sum(delay_binned == "early")/n,
+                         late = sum(delay_binned == "late")/n) %>%
+        mutate(
+          data= rep("observed",14))
+      
+      
+      #  Predicted frequencies
+      modelord <- polr(delay_binned ~ symptom, data = Symptom_distribution_delay_expand, Hess=TRUE, method="logistic")
+      
+     pred_data <- as_tibble(predict(modelord, type="probs")) 
+    
+
     Symptom_distribution_delay_expand <- bind_cols(Symptom_distribution_delay_expand, pred_data)
-    
+
     # Find mean probs
-    predict=Symptom_distribution_delay_expand %>% 
+    predict=Symptom_distribution_delay_expand %>%
       group_by(symptom) %>%
       dplyr::summarize(
-        before = mean(before), 
-        imm = mean(immediate), 
+        before = mean(before),
+        imm = mean(immediate),
         ear = mean(`early`),
-        late = mean(`late`))
-    
-    predict=cbind(predict, data=rep("predicted",14), n=observed$n)
-    observed=cbind(observed, data=rep("observed",14))
-    
+        late = mean(`late`))%>%
+      mutate(
+        data= rep("predicted",14),
+        n = observed$n)
+
     comparison= rbind(predict,observed)
+    
     barplot_comparison_before=ggplot(comparison, aes(x=symptom, y=before,fill=data))+
-      geom_col( position=position_dodge())
+      geom_col(position=position_dodge())+
+      theme_minimal()+
+      theme(axis.text.x = element_text(angle = 90))+
+      scale_fill_simpsons()+
+      xlab(paste("\n","symptoms")) + 
+      ylab(paste("Propability"))+ 
+      ggtitle("test before symptoms occur")
     
-    barplot_comparison_before
     
-    #barplot_comparison_immediate= ggplot(comparison, aes(x=symptom, y=imm,fill=data))+
-      #geom_col( position=position_dodge())
-  
-    #barplot_comparison_immediate )
+    ggplotly(barplot_comparison_before)
     })
+    
+    output$OMplotImmAM <- renderPlotly({
+      
+      Symptom_distribution_delay=CalwData %>%
+        dplyr::select(c(testingdelay,contains("symptoms.")))%>%
+        dplyr::select(-c(symptoms.temperature,symptoms.symptomatic)) %>%
+        filter(!is.na(testingdelay))%>%
+        mutate(delay_binned=case_when(
+          testingdelay<0~"before",
+          testingdelay%in%(0:2)~"immediate",
+          testingdelay%in%(3:5)~"early",
+          testingdelay>5~"late")%>%factor(levels = c("before","immediate","early","late")))%>%
+        dplyr::select(-testingdelay)%>%
+        gather(symptom, value, -delay_binned ) %>%
+        group_by(delay_binned,symptom,value) %>%
+        dplyr::summarize(n=n())%>%
+        filter(value=="yes")%>%
+        mutate(symptom=str_replace(symptom,"symptoms.","")%>%fix_symptoms)
+      
+      Symptom_distribution_delay_expand <- Symptom_distribution_delay %>%
+        uncount(n)
+      
+      #  Observed frequencies
+      observed=Symptom_distribution_delay_expand %>%
+        group_by(symptom) %>%
+        dplyr::summarize(n = n(), 
+                         before = sum(delay_binned == "before")/n,
+                         imm = sum(delay_binned == "immediate")/n,
+                         ear = sum(delay_binned == "early")/n,
+                         late = sum(delay_binned == "late")/n) %>%
+        mutate(
+          data= rep("observed",14))
+      
+      
+      #  Predicted frequencies
+      modelord <- polr(delay_binned ~ symptom, data = Symptom_distribution_delay_expand, Hess=TRUE, method="logistic")
+      
+      pred_data <- as_tibble(predict(modelord, type="probs")) 
+      
+      
+      Symptom_distribution_delay_expand <- bind_cols(Symptom_distribution_delay_expand, pred_data)
+      
+      # Find mean probs
+      predict=Symptom_distribution_delay_expand %>%
+        group_by(symptom) %>%
+        dplyr::summarize(
+          before = mean(before),
+          imm = mean(immediate),
+          ear = mean(`early`),
+          late = mean(`late`))%>%
+        mutate(
+          data= rep("predicted",14),
+          n = observed$n)
+      
+      comparison= rbind(predict,observed)
+      
+      bbarplot_comparison_immediate= ggplot(comparison, aes(x=symptom, y=imm,fill=data))+
+        geom_col( position=position_dodge())+
+        theme_minimal()+
+        theme(axis.text.x = element_text(angle = 90))+
+        theme(axis.text.x = element_text(angle = 90))+
+        scale_fill_simpsons()+
+        xlab(paste("\n","symptoms")) + 
+        ylab(paste("Propability"))+ 
+        ggtitle("test immediately when symptoms occur")
+      
+      ggplotly(bbarplot_comparison_immediate)
+      
+    })
+    
+    output$OMplotEarlyAM <- renderPlotly({
+      
+      Symptom_distribution_delay=CalwData %>%
+        dplyr::select(c(testingdelay,contains("symptoms.")))%>%
+        dplyr::select(-c(symptoms.temperature,symptoms.symptomatic)) %>%
+        filter(!is.na(testingdelay))%>%
+        mutate(delay_binned=case_when(
+          testingdelay<0~"before",
+          testingdelay%in%(0:2)~"immediate",
+          testingdelay%in%(3:5)~"early",
+          testingdelay>5~"late")%>%factor(levels = c("before","immediate","early","late")))%>%
+        dplyr::select(-testingdelay)%>%
+        gather(symptom, value, -delay_binned ) %>%
+        group_by(delay_binned,symptom,value) %>%
+        dplyr::summarize(n=n())%>%
+        filter(value=="yes")%>%
+        mutate(symptom=str_replace(symptom,"symptoms.","")%>%fix_symptoms)
+      
+      Symptom_distribution_delay_expand <- Symptom_distribution_delay %>%
+        uncount(n)
+      
+      #  Observed frequencies
+      observed=Symptom_distribution_delay_expand %>%
+        group_by(symptom) %>%
+        dplyr::summarize(n = n(), 
+                         before = sum(delay_binned == "before")/n,
+                         imm = sum(delay_binned == "immediate")/n,
+                         ear = sum(delay_binned == "early")/n,
+                         late = sum(delay_binned == "late")/n) %>%
+        mutate(
+          data= rep("observed",14))
+      
+      
+      #  Predicted frequencies
+      modelord <- polr(delay_binned ~ symptom, data = Symptom_distribution_delay_expand, Hess=TRUE, method="logistic")
+      
+      pred_data <- as_tibble(predict(modelord, type="probs")) 
+      
+      
+      Symptom_distribution_delay_expand <- bind_cols(Symptom_distribution_delay_expand, pred_data)
+      
+      # Find mean probs
+      predict=Symptom_distribution_delay_expand %>%
+        group_by(symptom) %>%
+        dplyr::summarize(
+          before = mean(before),
+          imm = mean(immediate),
+          ear = mean(`early`),
+          late = mean(`late`))%>%
+        mutate(
+          data= rep("predicted",14),
+          n = observed$n)
+      
+      comparison= rbind(predict,observed)
+      
+      barplot_comparison_early= ggplot(comparison, aes(x=symptom, y=ear,fill=data))+
+        geom_col( position=position_dodge())+
+        theme_minimal()+
+        theme(axis.text.x = element_text(angle = 90))+
+        scale_fill_simpsons()+
+        xlab(paste("\n","symptoms")) + 
+        ylab(paste("Propability"))+ 
+        ggtitle("test early after symptoms occur")
+      
+      
+      ggplotly(barplot_comparison_early)
+      
+    })
+    
+    output$OMplotLateAM <- renderPlotly({
+      
+      Symptom_distribution_delay=CalwData %>%
+        dplyr::select(c(testingdelay,contains("symptoms.")))%>%
+        dplyr::select(-c(symptoms.temperature,symptoms.symptomatic)) %>%
+        filter(!is.na(testingdelay))%>%
+        mutate(delay_binned=case_when(
+          testingdelay<0~"before",
+          testingdelay%in%(0:2)~"immediate",
+          testingdelay%in%(3:5)~"early",
+          testingdelay>5~"late")%>%factor(levels = c("before","immediate","early","late")))%>%
+        dplyr::select(-testingdelay)%>%
+        gather(symptom, value, -delay_binned ) %>%
+        group_by(delay_binned,symptom,value) %>%
+        dplyr::summarize(n=n())%>%
+        filter(value=="yes")%>%
+        mutate(symptom=str_replace(symptom,"symptoms.","")%>%fix_symptoms)
+      
+      Symptom_distribution_delay_expand <- Symptom_distribution_delay %>%
+        uncount(n)
+      
+      #  Observed frequencies
+      observed=Symptom_distribution_delay_expand %>%
+        group_by(symptom) %>%
+        dplyr::summarize(n = n(), 
+                         before = sum(delay_binned == "before")/n,
+                         imm = sum(delay_binned == "immediate")/n,
+                         ear = sum(delay_binned == "early")/n,
+                         late = sum(delay_binned == "late")/n) %>%
+        mutate(
+          data= rep("observed",14))
+      
+      
+      #  Predicted frequencies
+      modelord <- polr(delay_binned ~ symptom, data = Symptom_distribution_delay_expand, Hess=TRUE, method="logistic")
+      
+      pred_data <- as_tibble(predict(modelord, type="probs")) 
+      
+      
+      Symptom_distribution_delay_expand <- bind_cols(Symptom_distribution_delay_expand, pred_data)
+      
+      # Find mean probs
+      predict=Symptom_distribution_delay_expand %>%
+        group_by(symptom) %>%
+        dplyr::summarize(
+          before = mean(before),
+          imm = mean(immediate),
+          ear = mean(`early`),
+          late = mean(`late`))%>%
+        mutate(
+          data= rep("predicted",14),
+          n = observed$n)
+      comparison= rbind(predict,observed)
+      
+      barplot_comparison_late= ggplot(comparison, aes(x=symptom, y=late,fill=data))+
+        geom_col( position=position_dodge())+
+        theme_minimal()+
+        theme(axis.text.x = element_text(angle = 90))+
+        scale_fill_simpsons()+
+        xlab(paste("\n","symptoms")) + 
+        ylab(paste("Propability"))+ 
+        ggtitle("test late after symptoms occur")
+      
+      
+      ggplotly(barplot_comparison_late)
+      
+    })
+    
     
     ####
    
