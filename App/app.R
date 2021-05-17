@@ -33,6 +33,7 @@ library(ggsci)
 library(ggrepel)
 library(plotly)
 library(reshape2)
+library(corrr)
 #library(MASS) 
 
 
@@ -94,9 +95,14 @@ ui<- fluidPage(theme = shinytheme('slate'),
       tabPanel("B", fluid = TRUE,
                sidebarLayout(
                  sidebarPanel(
-                   
+                   radioButtons("radio2", label = h3("Radio buttons"),
+                                choices = list("Case" = 'cases', "Dead" = 'deaths'), 
+                                selected = 'cases')
                  ),
-                 mainPanel()
+                 mainPanel(
+                   leafletOutput('corr_map'),
+                   textOutput('testth')
+                 )
                )
       ),
       
@@ -637,7 +643,39 @@ server <- function(input, output) {
       })
       
     })
+    ###############################
     
+    p_corr = reactiveValues(id=2)
+    observeEvent(input$corr_map_shape_click, { # update the location selectInput on map clicks
+      tmp <- input$corr_map_shape_click
+      p_corr$id <- tmp$id
+      })
+    
+      output$corr_map <- renderLeaflet({
+      output$testth <- renderText(p_corr$id)
+      popul <- popu
+      dat <-m_dat
+      corr_dat<-as.data.frame(correlate(with(dat,dat[(dat$category==input$radio2),-c(1,403,404)])))
+      corr_dat[is.na(corr_dat)]<-1
+      
+      
+      leaflet(nycounties)%>%
+        addTiles()%>%
+        addPolygons(stroke = FALSE, smoothFactor = 0.3, fillOpacity = 0.7,
+                    fillColor = pal(unlist(corr_dat[p_corr$id,-1],use.names = FALSE)),
+                    # Highlight upon mouseover
+                    highlight = highlightOptions(
+                      weight = 30,
+                      fillOpacity = 0.9,
+                      color = "red",
+                      opacity = 0.1,
+                      bringToFront = TRUE),
+                    #sendToBack = TRUE), 
+                    
+                    label = ~paste0(GEN, ": ", formatC(unlist(corr_dat[p_corr$id,-1]), big.mark = ",")),layerId = seq.int(2,403)) %>%
+        addLegend(pal = pal, title=paste('New ',input$radio2,sep=' '),values = corr_dat[p_corr$id,-1], opacity = 1.0) %>%
+        addMarkers(8.7, 50, popup ="Offenbach", label = "Offenbach")
+    })
     
     
     ####
