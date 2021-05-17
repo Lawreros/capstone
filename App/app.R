@@ -129,7 +129,7 @@ ui<- fluidPage(theme = shinytheme('sandstone'),
                
             ),
       
-      tabPanel("Time Trend", fluid = TRUE,
+      tabPanel("COVID-19 Time Trend in Calw", fluid = TRUE,
                sidebarLayout(
                  sidebarPanel(
                    h3('Select Age Category:'),
@@ -153,6 +153,7 @@ ui<- fluidPage(theme = shinytheme('sandstone'),
                    plotOutput('timetrend2')
                  )
                )
+               
       ),
       
       tabPanel("Covid Impact in Germany", fluid = TRUE,
@@ -496,11 +497,12 @@ ui<- fluidPage(theme = shinytheme('sandstone'),
                    plotlyOutput("OMplotLateAM"))),
                 h3( "Model's Estimate including 95% CI"), 
                tableOutput("ordinalmodelAM")
-               
-                 
                )
-  
-  ))
+    
+      
+
+        
+         ))
 
   
 
