@@ -1,3 +1,6 @@
+## Link to Shiny App:
+## Link to Video Files:
+=======
 # Project Title
 
 ### Main Goal: 
@@ -19,17 +22,34 @@ Conducted descriptive analyses of *Delay in Testing* using density curves by cal
 
 A Multiple Linear Regression model was fitted for *delayed testing* as the dependent variable, and *Age (Category), Contact Source*, and *Travel History* as the predictor variables. Based on the MLR model, the Calculator section calculates the predicted number of days for an individual to take a test after symptoms onset based on selected features for the predictor variables. Underneath the calculator, there is a summary table for the Multiple Linear Regression, codebook for reference variables, interpretations and effect plots of each variable. 
 
-***Tab Time Trend (Lauren Norris)***
+***Tab Time Trend*** *(Lauren Norris)*
 
 Created time trend of COVID-19 cases over time from December 2020 - Present. Time trend plots included: total number of cases over time, number of cases stratified into five-year age bins over time, and number of cases stratified into twenty-year age bins over time. I added a smooth line to each plot for easier visualization.
 
-***Tab Probability of Death - MLR (Lauren Norris)***
+***Tab Probability of Death - MLR*** *(Lauren Norris)*
 
 Ran a multiple logistic regression model to model the odds of death given age category and sex. The input panel allows user to select sex and age-category (twenty-year bins) and the model will calculate and spit out the predicted probability of death. The logistic regression results table is reported, and odds ratios interpreted. 
 
-***Tab Association Death, Age, Sex (Lauren Norris)***
+***Tab Association Death, Age, Sex*** *(Lauren Norris)*
 
 Created mosaic plots using plotly that show the number of individuals alive and dead by sex and age-category (twenty-year age bin). Ran chi-square tests and reported p-values to test whether or not there is a significant association between condition (alive/dead) and sex, and condition (alive/dead) and age-category. 
+
+***Tab Symptoms - Descriptive analysis*** *(Alexandra Malinovska)*
+*Use: Compare symptoms distribution within different ages and test timing.*
+
+Conducted descriptive analyses of *Symptoms* using interactive pie-charts and bar-plots for total population and within different age categories and different test timings. 
+*Age* was used in 5-year bins and 20-year bins. *Time to test* was calculated as time interval (days) between positive COVID test to onset of symptoms. If symptom occurred after positive test, this value was negative and used as categories (before: <0 days, immediate: 0-2 days, early 3-5 days, late >5 days).
+A Fisher test was used to compare distribution of symptoms among groups. Reference group for pairwise comparison and symptom can be chosen. p-value of Fisher test are displayed within a bar-plot. 
+
+***Tab Symptoms - Descriptive analysis*** *(Alexandra Malinovska)*
+*Use: Compare observed and predicted probabilities of symptoms for different test timing.*
+
+An ordinal model on testing time using symptoms was fitted. Model estimates and Confidence intervals are reported. Observed and predicted probabilities are compared in bar-plots.
+
+
+
+
+
 
 
 #### Variables Used: 
@@ -51,7 +71,8 @@ Created mosaic plots using plotly that show the number of individuals alive and 
 - *Pregnancy*: During the phone interview, female participants were asked if they are currently pregnant. Values “yes”, “no”, “unknown”.
 
 - *Symptoms*: During the phone interview, participant was asked if any of the following symptoms occur: “feeling ill","fever","shivering","chills sweats","muscle pain","headache","difficulty breathing","cough","sore throat","runny nose","nausea","diarrhea","loss of smell","loss of taste". Values “yes”, “no”, “unknown”
-*Symptom onset*: During the phone interview, participant was asked on which date symptoms occurred. 
+
+- *Symptom onset*: During the phone interview, participant was asked on which date symptoms occurred. 
 
 - *Time to Test / Delayed Testing:* Time from positive COVID test to onset of symptoms was calculated. If symptom occurred after positive test, this value was negative. Used as numeric value in days, as well as binned into categories (before: <0, immediate: 0-2, early 3-5, late >5).
 
@@ -79,16 +100,16 @@ Required Libraries:
 
 
 #### Credits: 
-Kate Kim, MPH Candidate '21, Johns Hopkins University, Bloomberg School of Public Health ([https://github.com/ks00jinkim](url)
+Kate Kim, MPH Candidate '21, Johns Hopkins University, Bloomberg School of Public Health ([https://github.com/ks00jinkim](url))
 Lauren Norris,
-Alexandra Malinovska, 
+Alexandra Malinovska, MD, ScM Candidate, Department of Epidemiology, Johns Hopkins Bloomberg School of Public Health ([https://github.com/Alexa-Malina](url))
 Ross Lawrence
 
 #### Acknowledgment
-We want to thank the health department Calw for providing this interesting and real-life data. We thank Dr. Frank Wiehe, first state official and Dr. Philip-Rene' Retzbach, legal counsel for their support. A special thank you to Iris Brilhaus for the introduction into the data and health department processes and all fruitful discussions in her free time.
+We want to thank the health department Calw for providing this interesting and real-life data. We thank Dr. Frank Wiehe, first state official and Dr. Philip-Rene' Retzbach, legal counsel for their support. A special thank you to Iris Brilhaus, medical doctor in the Corona task force of district office Calw, for the introduction into the data and health department processes and all fruitful discussions in her free time.
 
 **Disclaimer**
-The following tool was developed for a class project. Please be aware that the predictions calculated by this tool rely soley on the available regressors and DO NOT NECESSARILY IMPLY CAUSATION by said regressors. The models are not validated and should not be used for any decision making. The data might differ from official records because a subset of participants were used.
+The following tool was developed for a class project. Please be aware that the predictions calculated by this tool rely solely on the available regressors and DO NOT NECESSARILY IMPLY CAUSATION by said regressors. The models are not validated and should not be used for any decision making. The data might differ from official records because a subset of participants were used.
 
 ### Data Background 
 
@@ -96,7 +117,7 @@ The following tool was developed for a class project. Please be aware that the p
 
 Calw is a district, or *Landkreis* (in German), centrally located in Baden Wuerttemberg, Germany. The district is approximately 800 square kilometers, with approximately 160.000 people living in the 25 cities and municipalities of the district. These consist of 10 cities - Calw city, Altensteig, Bad Herrenalb, Bad Liebenzell, Bad Teinach-Zavelstein, Bad Wildbad, Haiterbach, Nagold, Neubulach and Wildberg - and 15 municipalities - Althengstett, Dobel, Ebhausen, Egenhausen, Enzkloesterle, Gechingen, Hoefen, Neuweiler, Oberreichenbach, Ostelsheim, Rohrdorf, Schoemberg, Simmersfeld, Simmozheim und Unterreichenbach.
 
-The Calw Health Department is part of the district office, which is on the one hand a municipal self-governing authority and on the other hand the lower state administrative authority with diverse tasks. For more information please see the official homepage of the district office: ([https://lra-calw.de](url)
+The Calw Health Department is part of the district office, which is on the one hand a municipal self-governing authority and on the other hand the lower state administrative authority with diverse tasks. For more information please see the official homepage of the district office: [https://lra-calw.de](url)
 
 Since the beginning of the COVID-19 pandemic a completely new structure was set up within the health department. Depending on the incidence, up to 80 people were or are full-time and part-time employees coping with the pandemic. The military, *KSK Kommando Calw*, also supports the tracking of contact persons with up to 20 soldiers. Early on at the beginning of the second wave, the Calw District Office decided to digitize processes and use the Sormas software (see data source)
 
@@ -114,5 +135,3 @@ Data cleaning and translation in English was performed by Alexandra Malinovska. 
 
 #### Maintenance
 The last data extraction was performed on May 13, 2021, further data updates and maintenance of the app will be discussed with the health department Calw.
-
-

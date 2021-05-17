@@ -205,7 +205,7 @@ ui<- fluidPage(
 
                
       
-      tabPanel("Symptoms - Deskriptive analysis", fluid = TRUE,
+      tabPanel("Symptoms - Descriptive analysis", fluid = TRUE,
                
                #h3("Symptom Distribution by Age"),
                fluidRow(
