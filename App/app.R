@@ -35,7 +35,8 @@ library(plotly)
 library(reshape2)
 library(corrr)
 #library(MASS) 
-
+library(plotly)
+library(knitr)
 
 ui<- fluidPage(theme = shinytheme('sandstone'),
     tabsetPanel(
@@ -114,7 +115,7 @@ ui<- fluidPage(theme = shinytheme('sandstone'),
       tabPanel("Delayed Testing - Descriptive", fluid = TRUE,
                
                sidebarLayout(
-                 sidebarPanel(p(strong("How to use: Select criteria on the left panel and click on respective tab to view results.")),
+                 sidebarPanel(p(em("How to use: Select criteria for variables and click on respective tab to view results.")),
                               h4("Select by:"),
                               checkboxGroupInput("ages2", label=h4("Age Group"),
                                                  choices = list("0-19" = "0-19","20-39" = "20-39","40-59" = "40-59","60-79" = "60-79","80+" = "80+"),
@@ -134,12 +135,11 @@ ui<- fluidPage(theme = shinytheme('sandstone'),
                 ),
                  mainPanel(
                    h3("Density Curves of Delay in Testing"), 
-                   p("The delayed testing variable is calculated by the number of days since symptom onset to an individual's first (positive result) test."),
-                   p(em("Negative days of delayed testing can be explained if the individual was tested before symptom onset due to a known outbreak or contact, or vulnerable settings, such as nursing homes.")),
-                   p("The density curves below show the distribution of days until testing by age, traveled status, known contact history, sex, and pregnancy status."),
+                   p("The density curves below show the distribution of days until testing by age, travel history, known contact source, sex, and pregnancy status."),
                    p("The dashed lines indicate the mean for each selected group."),
         
                    tabsetPanel(
+                   tabPanel("Overall", plotOutput('delayedtotal')),
                    tabPanel("By Age", plotOutput('delayed'), h4("Boxplot Analysis"), plotOutput('boxplot')),
                    tabPanel("Previous Travel", plotOutput('delayed1'), h4("Boxplot Analysis"), plotOutput('boxplot1')),
                    tabPanel("Known Contact", plotOutput('delayed2'), h4("Boxplot Analysis"), plotOutput('boxplot2')),
@@ -152,7 +152,7 @@ ui<- fluidPage(theme = shinytheme('sandstone'),
       
       tabPanel("Delayed Testing - MLR", fluid = TRUE,
                sidebarLayout(
-                 sidebarPanel(p(strong("How to use: Select criteria and click on Calculator tab to view results.")),
+                 sidebarPanel(p(em("How to use: Select criteria for variables below to view results.")),
                               h3("Select Features:"),
                               selectInput("ages3", label=h3("Age Category"),
                               choices = list("0-19" = "0-19","20-39" = "20-39","40-59" = "40-59","60-79" = "60-79","80+" = "80+"),
@@ -164,16 +164,20 @@ ui<- fluidPage(theme = shinytheme('sandstone'),
                                choices = list("yes", "no","unknown"),
                                selected = "yes")
                  ),
-                 mainPanel(h3("Expected Delayed Testing using MLR"),
-                           tabsetPanel(
-                             tabPanel("MLR Table",
+                 mainPanel(h4("Expected Delayed Testing"),
+                           h4("Calculator"),
+                           h5("Expected number of days after symptoms onset individual takes COVID-19 test"),
+                           textOutput('linreg'),
+                           br(),
+                           br(),
+                           h4("Multiple Linear Regression Model"),
                                       p("Outcome is the number of days to take a COVID-19 test since onset of symptoms"), 
                                       p(strong("Codebook:")), 
                                       p(em("Age Category 0-19 = Reference")),
                                       p(em("Known Contact = Reference")),
                                       p(em("Traveled (yes) = Reference")), 
                                       htmlOutput('linear'),
-                                      h5("MLR interpretations"),
+                                      h5("MLR interpretations & Effect Plots"),
                                       p("The Intercept value of 2.19 is the expected mean number of days to take a test since symptoms onset if the individual is 0-19 years old, has a known Contact, and has traveled."), 
                                       p("If someone is 60-79 years they will have tested 0.84 days later than someone who is 0-19 years old with all other variables held constant (p<0.05)."), 
                                       p("If someone is over 80 years old, they will have tested 1.1 days earlier than someone who is 0-19 years old with all other variables held constant (p<0.05)."), 
@@ -183,13 +187,7 @@ ui<- fluidPage(theme = shinytheme('sandstone'),
                                       p("If someone had no previous travel history, they will have tested 0.59 days later than someone who had tested with a previous travel history with all other variables held constant (p<0.05)."),
                                       plotOutput('linregplot3')
                                        ),
-                             tabPanel("Calculator",
-                                      h4("Expected number of days after symptoms onset individual takes COVID-19 test"),
-                                      textOutput('linreg'))
-                             
-                           )
-                 )
-               )),
+                            )),
       
     
         
@@ -254,7 +252,7 @@ ui<- fluidPage(theme = shinytheme('sandstone'),
 
                
       
-      tabPanel("G - Symptoms", fluid = TRUE,
+      tabPanel("Symptoms - Deskriptive analysis", fluid = TRUE,
                
                #h3("Symptom Distribution by Age"),
                fluidRow(
@@ -443,7 +441,7 @@ ui<- fluidPage(theme = shinytheme('sandstone'),
                     participants are contained in the data set. 
                    Questions about data cleaning and translation can be directed to her."),
                  h4("Data dictionary"),
-                 p("..."),
+                 p("The data dictionary can be found in the Readme file of this App on Github."),
                  h3("Acknowledgment"),
                  p(" We want to thank the health department Calw for providing this interesting and real-life 
                  data. We thank Dr. Frank Wiehe, first state official and Dr. Philip-Rene' Retzbach, legal 
@@ -459,15 +457,28 @@ ui<- fluidPage(theme = shinytheme('sandstone'),
       
       
 
-      tabPanel("H - predition testing", fluid = TRUE,
-
-               sidebarLayout(
-                 sidebarPanel(),
-                 mainPanel(
-                   plotOutput("ordinalmodelAM")
-                 )
-               )
-      ),
+      tabPanel("Symptoms - Ordinal Regression on testing time", fluid = TRUE,
+               h3( "Ordinal Regression on testing time using symptoms"),
+               p("After the descriptive analysis, we wanted to fit a model to try to answer:
+                 Are symptoms associated with a specific testing time and can we model this in a regression?
+                 We fit an ordinal model and compared predicted and observed probability"), 
+               br(), 
+               fluidRow(
+                 column(6,
+                   plotlyOutput("OMplotBeforeAM")),
+                 column(6,
+                   plotlyOutput("OMplotImmAM"))),
+               fluidRow(
+                 column(6,
+                   plotlyOutput("OMplotEarlyAM")),
+                 column(6,
+                   plotlyOutput("OMplotLateAM"))),
+                h3( "Model's Estimate including 95% CI"), 
+               tableOutput("ordinalmodelAM")
+               
+                 
+               ),
+    
       
 
         
@@ -695,7 +706,29 @@ server <- function(input, output) {
     
     #### Tab "Delayed Testing - Descriptive" 
     
-    # Bar chart for delayed days
+    # Density Curves and Plots for Delayed days
+    output$delayedtotal <- renderPlot({
+    CalwData2 <- 
+      CalwData %>% 
+      filter(!is.na(symptoms.onsetDate)) %>% 
+      mutate(delayed.testing = ymd(indexcase)- symptoms.onsetDate)
+      
+
+    mu <- CalwData2 %>% 
+      summarize (grp.mean = mean(delayed.testing, na.rm = TRUE))
+    
+    ggplot()+
+      geom_density(CalwData2, mapping = aes(delayed.testing), fill="darkviolet", alpha=0.4) +
+      geom_vline(mu, mapping = aes(xintercept = grp.mean), linetype="dashed") +
+      geom_label_repel(mu, mapping = aes(x = grp.mean, y= 0.2, label = paste(round(grp.mean, 3))), fill = 'darkviolet', colour = 'white') +
+      xlim(c(-10, 14)) + 
+      theme_minimal() + 
+      ggtitle ("Delayed Testing") + 
+      theme(plot.title = element_text(hjust = 0.5, size = 14, face = "bold")) + 
+      xlab("Number of Days") + 
+      ylab("Density")
+    
+  })
     
     output$delayed <- renderPlot({
       CalwData2 <- 
@@ -750,7 +783,7 @@ server <- function(input, output) {
       
       CalwData4 <- CalwData4[complete.cases(CalwData4),]
       
-      boxplot(CalwData4$delayed.testing~CalwData4$Age_Cat, col="skyblue", main='Days to take Test since Symptoms Onset by Age', xlab="Age", ylab="# of days of delayed testing")
+      boxplot(CalwData4$delayed.testing~CalwData4$Age_Cat, col="skyblue", main='Delayed Testing by Age', xlab="Age", ylab="# of days of delayed testing")
       
     })
     
@@ -773,11 +806,11 @@ server <- function(input, output) {
         geom_label_repel(mu[mu$traveled %in% input$traveled,], mapping = aes(x = grp.mean, y= 0.2, label = paste(round(grp.mean, 3)), fill = input$traveled), colour="white") +
         xlim(c(-5, 10))+ 
         theme_minimal() + 
-        ggtitle ("Delayed Testing by Pregnancy Status") + 
+        ggtitle ("Delayed Testing by Travel History") + 
         theme(plot.title = element_text(hjust = 0.5, size = 14, face = "bold")) + 
         xlab("Number of Days") + 
         ylab("Density") + 
-        guides(fill=guide_legend(title="Pregnancy Status")) + 
+        guides(fill=guide_legend(title="Travel History")) + 
         scale_fill_brewer(palette="Dark2")
       
     })
@@ -786,7 +819,7 @@ server <- function(input, output) {
       CalwData4 <- 
         CalwData %>% 
         mutate(delayed.testing = ymd(indexcase)- symptoms.onsetDate) %>%
-        select(c(delayed.testing, age, pregnant, traveled, contactSourceCase, sex)) %>% 
+        dplyr::select(c(delayed.testing, age, pregnant, traveled, contactSourceCase, sex)) %>% 
         
         mutate(Age_Cat = ifelse(age == '0-4' | age == '5-9' | age == '10-14' | age == '15-19', 1,
                                 ifelse(age == '20-24' | age == '25-29' | age == '30-34' | age == '35-39', 2,
@@ -802,7 +835,7 @@ server <- function(input, output) {
       
       CalwData4 <- CalwData4[complete.cases(CalwData4),]
       
-      boxplot(CalwData4$delayed.testing~CalwData4$traveled, col="skyblue", main='Days to take Test Since Symptoms by Previous Travel', xlab="Traveled", ylab="# of Days Delayed Testing")
+      boxplot(CalwData4$delayed.testing~CalwData4$traveled, col="skyblue", main='Delayed Testing by Previous Travel', xlab="Traveled", ylab="# of Days Delayed Testing")
       
     })
     
@@ -837,7 +870,7 @@ server <- function(input, output) {
       CalwData4 <- 
         CalwData %>% 
         mutate(delayed.testing = ymd(indexcase)- symptoms.onsetDate) %>%
-        select(c(delayed.testing, age, pregnant, traveled, contactSourceCase, sex)) %>% 
+        dplyr::select(c(delayed.testing, age, pregnant, traveled, contactSourceCase, sex)) %>% 
         
         mutate(Age_Cat = ifelse(age == '0-4' | age == '5-9' | age == '10-14' | age == '15-19', 1,
                                 ifelse(age == '20-24' | age == '25-29' | age == '30-34' | age == '35-39', 2,
@@ -886,7 +919,7 @@ server <- function(input, output) {
       CalwData4 <- 
         CalwData %>% 
         mutate(delayed.testing = ymd(indexcase)- symptoms.onsetDate) %>%
-        select(c(delayed.testing, age, pregnant, traveled, contactSourceCase, sex)) %>% 
+        dplyr::select(c(delayed.testing, age, pregnant, traveled, contactSourceCase, sex)) %>% 
         
         mutate(Age_Cat = ifelse(age == '0-4' | age == '5-9' | age == '10-14' | age == '15-19', 1,
                                 ifelse(age == '20-24' | age == '25-29' | age == '30-34' | age == '35-39', 2,
@@ -937,7 +970,7 @@ server <- function(input, output) {
       CalwData4 <- 
         CalwData %>% 
         mutate(delayed.testing = ymd(indexcase)- symptoms.onsetDate) %>%
-        select(c(delayed.testing, age, pregnant, traveled, contactSourceCase, sex)) %>% 
+        dplyr::select(c(delayed.testing, age, pregnant, traveled, contactSourceCase, sex)) %>% 
         
         mutate(Age_Cat = ifelse(age == '0-4' | age == '5-9' | age == '10-14' | age == '15-19', 1,
                                 ifelse(age == '20-24' | age == '25-29' | age == '30-34' | age == '35-39', 2,
@@ -1471,7 +1504,6 @@ server <- function(input, output) {
     })
     
     
-    #piealldelay
     
     output$barAM <- renderPlotly({
       Symptom_distribution_delay=CalwData %>%
@@ -1581,7 +1613,7 @@ server <- function(input, output) {
     #### Tab H
     
     
-    output$ordinalmodelAM <- renderPlot({
+    output$ordinalmodelAM <- renderTable({
       
       Symptom_distribution_delay=CalwData %>%
         dplyr::select(c(testingdelay,contains("symptoms.")))%>%
@@ -1614,36 +1646,289 @@ server <- function(input, output) {
     
     #  Predicted frequencies
     modelord <- polr(delay_binned ~ symptom, data = Symptom_distribution_delay_expand, Hess=TRUE, method="logistic")
-    #summary(modelord)
     
-    pred_data <- as_tibble(predict(modelord, type="probs")) 
-    #pred_data
+    tbl= cbind(as.data.frame(exp(modelord$coefficients)), exp(confint.default(modelord))) %>%
+      set_colnames(c( "estimate","Lower CI","Higher CI"))%>%
+      tibble::rownames_to_column(., "symptom")
     
+    tbl 
+    
+    })
+    
+    output$OMplotBeforeAM <- renderPlotly({
+      
+      Symptom_distribution_delay=CalwData %>%
+        dplyr::select(c(testingdelay,contains("symptoms.")))%>%
+        dplyr::select(-c(symptoms.temperature,symptoms.symptomatic)) %>%
+        filter(!is.na(testingdelay))%>%
+        mutate(delay_binned=case_when(
+          testingdelay<0~"before",
+          testingdelay%in%(0:2)~"immediate",
+          testingdelay%in%(3:5)~"early",
+          testingdelay>5~"late")%>%factor(levels = c("before","immediate","early","late")))%>%
+        dplyr::select(-testingdelay)%>%
+        gather(symptom, value, -delay_binned ) %>%
+        group_by(delay_binned,symptom,value) %>%
+        dplyr::summarize(n=n())%>%
+        filter(value=="yes")%>%
+        mutate(symptom=str_replace(symptom,"symptoms.","")%>%fix_symptoms)
+      
+      Symptom_distribution_delay_expand <- Symptom_distribution_delay %>%
+        uncount(n)
+      
+      #  Observed frequencies
+      observed=Symptom_distribution_delay_expand %>%
+        group_by(symptom) %>%
+        dplyr::summarize(n = n(), 
+                         before = sum(delay_binned == "before")/n,
+                         imm = sum(delay_binned == "immediate")/n,
+                         ear = sum(delay_binned == "early")/n,
+                         late = sum(delay_binned == "late")/n) %>%
+        mutate(
+          data= rep("observed",14))
+      
+      
+      #  Predicted frequencies
+      modelord <- polr(delay_binned ~ symptom, data = Symptom_distribution_delay_expand, Hess=TRUE, method="logistic")
+      
+     pred_data <- as_tibble(predict(modelord, type="probs")) 
+    
+
     Symptom_distribution_delay_expand <- bind_cols(Symptom_distribution_delay_expand, pred_data)
-    
+
     # Find mean probs
-    predict=Symptom_distribution_delay_expand %>% 
+    predict=Symptom_distribution_delay_expand %>%
       group_by(symptom) %>%
       dplyr::summarize(
-        before = mean(before), 
-        imm = mean(immediate), 
+        before = mean(before),
+        imm = mean(immediate),
         ear = mean(`early`),
-        late = mean(`late`))
-    
-    predict=cbind(predict, data=rep("predicted",14), n=observed$n)
-    observed=cbind(observed, data=rep("observed",14))
-    
+        late = mean(`late`))%>%
+      mutate(
+        data= rep("predicted",14),
+        n = observed$n)
+
     comparison= rbind(predict,observed)
+    
     barplot_comparison_before=ggplot(comparison, aes(x=symptom, y=before,fill=data))+
-      geom_col( position=position_dodge())
+      geom_col(position=position_dodge())+
+      theme_minimal()+
+      theme(axis.text.x = element_text(angle = 90))+
+      scale_fill_simpsons()+
+      xlab(paste("\n","symptoms")) + 
+      ylab(paste("Propability"))+ 
+      ggtitle("test before symptoms occur")
     
-    barplot_comparison_before
     
-    #barplot_comparison_immediate= ggplot(comparison, aes(x=symptom, y=imm,fill=data))+
-      #geom_col( position=position_dodge())
-  
-    #barplot_comparison_immediate )
+    ggplotly(barplot_comparison_before)
     })
+    
+    output$OMplotImmAM <- renderPlotly({
+      
+      Symptom_distribution_delay=CalwData %>%
+        dplyr::select(c(testingdelay,contains("symptoms.")))%>%
+        dplyr::select(-c(symptoms.temperature,symptoms.symptomatic)) %>%
+        filter(!is.na(testingdelay))%>%
+        mutate(delay_binned=case_when(
+          testingdelay<0~"before",
+          testingdelay%in%(0:2)~"immediate",
+          testingdelay%in%(3:5)~"early",
+          testingdelay>5~"late")%>%factor(levels = c("before","immediate","early","late")))%>%
+        dplyr::select(-testingdelay)%>%
+        gather(symptom, value, -delay_binned ) %>%
+        group_by(delay_binned,symptom,value) %>%
+        dplyr::summarize(n=n())%>%
+        filter(value=="yes")%>%
+        mutate(symptom=str_replace(symptom,"symptoms.","")%>%fix_symptoms)
+      
+      Symptom_distribution_delay_expand <- Symptom_distribution_delay %>%
+        uncount(n)
+      
+      #  Observed frequencies
+      observed=Symptom_distribution_delay_expand %>%
+        group_by(symptom) %>%
+        dplyr::summarize(n = n(), 
+                         before = sum(delay_binned == "before")/n,
+                         imm = sum(delay_binned == "immediate")/n,
+                         ear = sum(delay_binned == "early")/n,
+                         late = sum(delay_binned == "late")/n) %>%
+        mutate(
+          data= rep("observed",14))
+      
+      
+      #  Predicted frequencies
+      modelord <- polr(delay_binned ~ symptom, data = Symptom_distribution_delay_expand, Hess=TRUE, method="logistic")
+      
+      pred_data <- as_tibble(predict(modelord, type="probs")) 
+      
+      
+      Symptom_distribution_delay_expand <- bind_cols(Symptom_distribution_delay_expand, pred_data)
+      
+      # Find mean probs
+      predict=Symptom_distribution_delay_expand %>%
+        group_by(symptom) %>%
+        dplyr::summarize(
+          before = mean(before),
+          imm = mean(immediate),
+          ear = mean(`early`),
+          late = mean(`late`))%>%
+        mutate(
+          data= rep("predicted",14),
+          n = observed$n)
+      
+      comparison= rbind(predict,observed)
+      
+      bbarplot_comparison_immediate= ggplot(comparison, aes(x=symptom, y=imm,fill=data))+
+        geom_col( position=position_dodge())+
+        theme_minimal()+
+        theme(axis.text.x = element_text(angle = 90))+
+        theme(axis.text.x = element_text(angle = 90))+
+        scale_fill_simpsons()+
+        xlab(paste("\n","symptoms")) + 
+        ylab(paste("Propability"))+ 
+        ggtitle("test immediately when symptoms occur")
+      
+      ggplotly(bbarplot_comparison_immediate)
+      
+    })
+    
+    output$OMplotEarlyAM <- renderPlotly({
+      
+      Symptom_distribution_delay=CalwData %>%
+        dplyr::select(c(testingdelay,contains("symptoms.")))%>%
+        dplyr::select(-c(symptoms.temperature,symptoms.symptomatic)) %>%
+        filter(!is.na(testingdelay))%>%
+        mutate(delay_binned=case_when(
+          testingdelay<0~"before",
+          testingdelay%in%(0:2)~"immediate",
+          testingdelay%in%(3:5)~"early",
+          testingdelay>5~"late")%>%factor(levels = c("before","immediate","early","late")))%>%
+        dplyr::select(-testingdelay)%>%
+        gather(symptom, value, -delay_binned ) %>%
+        group_by(delay_binned,symptom,value) %>%
+        dplyr::summarize(n=n())%>%
+        filter(value=="yes")%>%
+        mutate(symptom=str_replace(symptom,"symptoms.","")%>%fix_symptoms)
+      
+      Symptom_distribution_delay_expand <- Symptom_distribution_delay %>%
+        uncount(n)
+      
+      #  Observed frequencies
+      observed=Symptom_distribution_delay_expand %>%
+        group_by(symptom) %>%
+        dplyr::summarize(n = n(), 
+                         before = sum(delay_binned == "before")/n,
+                         imm = sum(delay_binned == "immediate")/n,
+                         ear = sum(delay_binned == "early")/n,
+                         late = sum(delay_binned == "late")/n) %>%
+        mutate(
+          data= rep("observed",14))
+      
+      
+      #  Predicted frequencies
+      modelord <- polr(delay_binned ~ symptom, data = Symptom_distribution_delay_expand, Hess=TRUE, method="logistic")
+      
+      pred_data <- as_tibble(predict(modelord, type="probs")) 
+      
+      
+      Symptom_distribution_delay_expand <- bind_cols(Symptom_distribution_delay_expand, pred_data)
+      
+      # Find mean probs
+      predict=Symptom_distribution_delay_expand %>%
+        group_by(symptom) %>%
+        dplyr::summarize(
+          before = mean(before),
+          imm = mean(immediate),
+          ear = mean(`early`),
+          late = mean(`late`))%>%
+        mutate(
+          data= rep("predicted",14),
+          n = observed$n)
+      
+      comparison= rbind(predict,observed)
+      
+      barplot_comparison_early= ggplot(comparison, aes(x=symptom, y=ear,fill=data))+
+        geom_col( position=position_dodge())+
+        theme_minimal()+
+        theme(axis.text.x = element_text(angle = 90))+
+        scale_fill_simpsons()+
+        xlab(paste("\n","symptoms")) + 
+        ylab(paste("Propability"))+ 
+        ggtitle("test early after symptoms occur")
+      
+      
+      ggplotly(barplot_comparison_early)
+      
+    })
+    
+    output$OMplotLateAM <- renderPlotly({
+      
+      Symptom_distribution_delay=CalwData %>%
+        dplyr::select(c(testingdelay,contains("symptoms.")))%>%
+        dplyr::select(-c(symptoms.temperature,symptoms.symptomatic)) %>%
+        filter(!is.na(testingdelay))%>%
+        mutate(delay_binned=case_when(
+          testingdelay<0~"before",
+          testingdelay%in%(0:2)~"immediate",
+          testingdelay%in%(3:5)~"early",
+          testingdelay>5~"late")%>%factor(levels = c("before","immediate","early","late")))%>%
+        dplyr::select(-testingdelay)%>%
+        gather(symptom, value, -delay_binned ) %>%
+        group_by(delay_binned,symptom,value) %>%
+        dplyr::summarize(n=n())%>%
+        filter(value=="yes")%>%
+        mutate(symptom=str_replace(symptom,"symptoms.","")%>%fix_symptoms)
+      
+      Symptom_distribution_delay_expand <- Symptom_distribution_delay %>%
+        uncount(n)
+      
+      #  Observed frequencies
+      observed=Symptom_distribution_delay_expand %>%
+        group_by(symptom) %>%
+        dplyr::summarize(n = n(), 
+                         before = sum(delay_binned == "before")/n,
+                         imm = sum(delay_binned == "immediate")/n,
+                         ear = sum(delay_binned == "early")/n,
+                         late = sum(delay_binned == "late")/n) %>%
+        mutate(
+          data= rep("observed",14))
+      
+      
+      #  Predicted frequencies
+      modelord <- polr(delay_binned ~ symptom, data = Symptom_distribution_delay_expand, Hess=TRUE, method="logistic")
+      
+      pred_data <- as_tibble(predict(modelord, type="probs")) 
+      
+      
+      Symptom_distribution_delay_expand <- bind_cols(Symptom_distribution_delay_expand, pred_data)
+      
+      # Find mean probs
+      predict=Symptom_distribution_delay_expand %>%
+        group_by(symptom) %>%
+        dplyr::summarize(
+          before = mean(before),
+          imm = mean(immediate),
+          ear = mean(`early`),
+          late = mean(`late`))%>%
+        mutate(
+          data= rep("predicted",14),
+          n = observed$n)
+      comparison= rbind(predict,observed)
+      
+      barplot_comparison_late= ggplot(comparison, aes(x=symptom, y=late,fill=data))+
+        geom_col( position=position_dodge())+
+        theme_minimal()+
+        theme(axis.text.x = element_text(angle = 90))+
+        scale_fill_simpsons()+
+        xlab(paste("\n","symptoms")) + 
+        ylab(paste("Propability"))+ 
+        ggtitle("test late after symptoms occur")
+      
+      
+      ggplotly(barplot_comparison_late)
+      
+    })
+    
     
     ####
    
