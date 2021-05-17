@@ -5,9 +5,9 @@ account: lawreros
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 4139331
-bundleId: 4608574
+bundleId: 4608655
 url: https://lawreros.shinyapps.io/capstone/
-when: 1621277783.44812
-lastSyncTime: 1621277783.44814
+when: 1621279290.00412
+lastSyncTime: 1621279290.00414
 asMultiple: FALSE
 asStatic: FALSE
