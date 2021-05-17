@@ -140,7 +140,7 @@ ui<- fluidPage(
                                       p("If someone had no previous travel history, they will have tested 0.59 days later than someone who had tested with a previous travel history with all other variables held constant (p<0.05)."),
                                       plotOutput('linregplot3')
                                        ),
-                            ))),
+                            )),
       
     
         
@@ -579,13 +579,13 @@ server <- function(input, output) {
       CalwData4 <- 
         CalwData %>% 
         mutate(delayed.testing = ymd(indexcase)- symptoms.onsetDate) %>%
-        select(c(delayed.testing, age, pregnant, traveled, contactSourceCase, sex)) %>% 
+        dplyr::select(c(delayed.testing, age, pregnant, traveled, contactSourceCase, sex)) %>% 
         
         mutate(Age_Cat = ifelse(age == '0-4' | age == '5-9' | age == '10-14' | age == '15-19', 1,
                                 ifelse(age == '20-24' | age == '25-29' | age == '30-34' | age == '35-39', 2,
                                        ifelse(age == '40-44' | age == '45-49' | age == '50-54' | age == '55-59', 3,
                                               ifelse(age == '60-64' | age == '65-69' | age == '70-74' | age == '75-79', 4, 5))))) %>% 
-        select(-age)
+        dplyr::select(-age)
       
       
       CalwData4$delayed.testing <- as.numeric(CalwData4$delayed.testing)
@@ -631,13 +631,13 @@ server <- function(input, output) {
       CalwData4 <- 
         CalwData %>% 
         mutate(delayed.testing = ymd(indexcase)- symptoms.onsetDate) %>%
-        select(c(delayed.testing, age, pregnant, traveled, contactSourceCase, sex)) %>% 
+        dplyr::select(c(delayed.testing, age, pregnant, traveled, contactSourceCase, sex)) %>% 
         
         mutate(Age_Cat = ifelse(age == '0-4' | age == '5-9' | age == '10-14' | age == '15-19', 1,
                                 ifelse(age == '20-24' | age == '25-29' | age == '30-34' | age == '35-39', 2,
                                        ifelse(age == '40-44' | age == '45-49' | age == '50-54' | age == '55-59', 3,
                                               ifelse(age == '60-64' | age == '65-69' | age == '70-74' | age == '75-79', 4, 5))))) %>% 
-        select(-age)
+        dplyr::select(-age)
       
       
       CalwData4$delayed.testing <- as.numeric(CalwData4$delayed.testing)
@@ -682,13 +682,13 @@ server <- function(input, output) {
       CalwData4 <- 
         CalwData %>% 
         mutate(delayed.testing = ymd(indexcase)- symptoms.onsetDate) %>%
-        select(c(delayed.testing, age, pregnant, traveled, contactSourceCase, sex)) %>% 
+        dplyr::select(c(delayed.testing, age, pregnant, traveled, contactSourceCase, sex)) %>% 
         
         mutate(Age_Cat = ifelse(age == '0-4' | age == '5-9' | age == '10-14' | age == '15-19', 1,
                                 ifelse(age == '20-24' | age == '25-29' | age == '30-34' | age == '35-39', 2,
                                        ifelse(age == '40-44' | age == '45-49' | age == '50-54' | age == '55-59', 3,
                                               ifelse(age == '60-64' | age == '65-69' | age == '70-74' | age == '75-79', 4, 5))))) %>% 
-        select(-age)
+        dplyr::select(-age)
       
       
       CalwData4$delayed.testing <- as.numeric(CalwData4$delayed.testing)
@@ -731,13 +731,13 @@ server <- function(input, output) {
       CalwData4 <- 
         CalwData %>% 
         mutate(delayed.testing = ymd(indexcase)- symptoms.onsetDate) %>%
-        select(c(delayed.testing, age, pregnant, traveled, contactSourceCase, sex)) %>% 
+        dplyr::select(c(delayed.testing, age, pregnant, traveled, contactSourceCase, sex)) %>% 
         
         mutate(Age_Cat = ifelse(age == '0-4' | age == '5-9' | age == '10-14' | age == '15-19', 1,
                                 ifelse(age == '20-24' | age == '25-29' | age == '30-34' | age == '35-39', 2,
                                        ifelse(age == '40-44' | age == '45-49' | age == '50-54' | age == '55-59', 3,
                                               ifelse(age == '60-64' | age == '65-69' | age == '70-74' | age == '75-79', 4, 5))))) %>% 
-        select(-age)
+        dplyr::select(-age)
       
       
       CalwData4$delayed.testing <- as.numeric(CalwData4$delayed.testing)
@@ -782,13 +782,13 @@ server <- function(input, output) {
       CalwData4 <- 
         CalwData %>% 
         mutate(delayed.testing = ymd(indexcase)- symptoms.onsetDate) %>%
-        select(c(delayed.testing, age, pregnant, traveled, contactSourceCase, sex)) %>% 
+        dplyr::select(c(delayed.testing, age, pregnant, traveled, contactSourceCase, sex)) %>% 
         
         mutate(Age_Cat = ifelse(age == '0-4' | age == '5-9' | age == '10-14' | age == '15-19', 1,
                                 ifelse(age == '20-24' | age == '25-29' | age == '30-34' | age == '35-39', 2,
                                        ifelse(age == '40-44' | age == '45-49' | age == '50-54' | age == '55-59', 3,
                                               ifelse(age == '60-64' | age == '65-69' | age == '70-74' | age == '75-79', 4, 5))))) %>% 
-        select(-age)
+        dplyr::select(-age)
       
       
       CalwData4$delayed.testing <- as.numeric(CalwData4$delayed.testing)
@@ -810,7 +810,7 @@ server <- function(input, output) {
     output$sexmosaic <- renderPlotly({
       
       CalwDatanew <- CalwData %>%
-        select(age, sex, condition)
+        dplyr::select(age, sex, condition)
       CalwDatanew <- CalwDatanew[complete.cases(CalwDatanew),]
       
       CalwDatanew <- CalwDatanew %>%
@@ -836,7 +836,7 @@ server <- function(input, output) {
     output$chisq <- renderPrint({
       
       CalwDatanew <- CalwData %>%
-        select(age, sex, condition)
+        dplyr::select(age, sex, condition)
       CalwDatanew <- CalwDatanew[complete.cases(CalwDatanew),]
       
       CalwDatanew <- CalwDatanew %>%
@@ -857,7 +857,7 @@ server <- function(input, output) {
     
     output$chisqage <- renderPrint({
       CalwDatanew <- CalwData %>%
-      select(age, sex, condition)
+      dplyr::select(age, sex, condition)
       CalwDatanew <- CalwDatanew[complete.cases(CalwDatanew),]
       
       CalwDatanew <- CalwDatanew %>%
@@ -884,7 +884,7 @@ server <- function(input, output) {
     output$agemosaic <- renderPlotly({
       
       CalwDatanew <- CalwData %>%
-        select(age, sex, condition)
+        dplyr::select(age, sex, condition)
       CalwDatanew <- CalwDatanew[complete.cases(CalwDatanew),]
       
       CalwDatanew <- CalwDatanew %>%
@@ -922,13 +922,13 @@ server <- function(input, output) {
       CalwData4 <- 
         CalwData %>% 
         mutate(delayed.testing = ymd(indexcase)- symptoms.onsetDate) %>%
-        select(c(delayed.testing, age, pregnant, traveled, contactSourceCase, sex)) %>% 
+        dplyr::select(c(delayed.testing, age, pregnant, traveled, contactSourceCase, sex)) %>% 
         
         mutate(Age_Cat = ifelse(age == '0-4' | age == '5-9' | age == '10-14' | age == '15-19', 1,
                                 ifelse(age == '20-24' | age == '25-29' | age == '30-34' | age == '35-39', 2,
                                        ifelse(age == '40-44' | age == '45-49' | age == '50-54' | age == '55-59', 3,
                                               ifelse(age == '60-64' | age == '65-69' | age == '70-74' | age == '75-79', 4, 5))))) %>% 
-        select(-age) 
+        dplyr::select(-age) 
       
       CalwData4 <- CalwData4[complete.cases(CalwData4),]
       
@@ -948,13 +948,13 @@ server <- function(input, output) {
       CalwData4 <- 
         CalwData %>% 
         mutate(delayed.testing = ymd(indexcase)- symptoms.onsetDate) %>%
-        select(c(delayed.testing, age, pregnant, traveled, contactSourceCase, sex)) %>%
+        dplyr::select(c(delayed.testing, age, pregnant, traveled, contactSourceCase, sex)) %>%
         
         mutate(Age_Cat = ifelse(age == '0-4' | age == '5-9' | age == '10-14' | age == '15-19', 1,
                                 ifelse(age == '20-24' | age == '25-29' | age == '30-34' | age == '35-39', 2,
                                        ifelse(age == '40-44' | age == '45-49' | age == '50-54' | age == '55-59', 3,
                                               ifelse(age == '60-64' | age == '65-69' | age == '70-74' | age == '75-79', 4, 5))))) %>% 
-        select(-age) 
+        dplyr::select(-age) 
       
       CalwData4 <- CalwData4[complete.cases(CalwData4),]
       
@@ -979,13 +979,13 @@ server <- function(input, output) {
       CalwData4 <- 
         CalwData %>% 
         mutate(delayed.testing = ymd(indexcase)- symptoms.onsetDate) %>%
-        select(c(delayed.testing, age, pregnant, traveled, contactSourceCase, sex)) %>%
+        dplyr::select(c(delayed.testing, age, pregnant, traveled, contactSourceCase, sex)) %>%
         
         mutate(Age_Cat = ifelse(age == '0-4' | age == '5-9' | age == '10-14' | age == '15-19', 1,
                                 ifelse(age == '20-24' | age == '25-29' | age == '30-34' | age == '35-39', 2,
                                        ifelse(age == '40-44' | age == '45-49' | age == '50-54' | age == '55-59', 3,
                                               ifelse(age == '60-64' | age == '65-69' | age == '70-74' | age == '75-79', 4, 5))))) %>% 
-        select(-age) 
+        dplyr::select(-age) 
       
       CalwData4 <- CalwData4[complete.cases(CalwData4),]
       
@@ -1004,13 +1004,13 @@ server <- function(input, output) {
       CalwData4 <- 
         CalwData %>% 
         mutate(delayed.testing = ymd(indexcase)- symptoms.onsetDate) %>%
-        select(c(delayed.testing, age, pregnant, traveled, contactSourceCase, sex)) %>%
+        dplyr::select(c(delayed.testing, age, pregnant, traveled, contactSourceCase, sex)) %>%
         
         mutate(Age_Cat = ifelse(age == '0-4' | age == '5-9' | age == '10-14' | age == '15-19', 1,
                                 ifelse(age == '20-24' | age == '25-29' | age == '30-34' | age == '35-39', 2,
                                        ifelse(age == '40-44' | age == '45-49' | age == '50-54' | age == '55-59', 3,
                                               ifelse(age == '60-64' | age == '65-69' | age == '70-74' | age == '75-79', 4, 5))))) %>% 
-        select(-age) 
+        dplyr::select(-age) 
       
       CalwData4 <- CalwData4[complete.cases(CalwData4),]
       
@@ -1029,13 +1029,13 @@ server <- function(input, output) {
       CalwData4 <- 
         CalwData %>% 
         mutate(delayed.testing = ymd(indexcase)- symptoms.onsetDate) %>%
-        select(c(delayed.testing, age, pregnant, traveled, contactSourceCase, sex)) %>%
+        dplyr::select(c(delayed.testing, age, pregnant, traveled, contactSourceCase, sex)) %>%
         
         mutate(Age_Cat = ifelse(age == '0-4' | age == '5-9' | age == '10-14' | age == '15-19', 1,
                                 ifelse(age == '20-24' | age == '25-29' | age == '30-34' | age == '35-39', 2,
                                        ifelse(age == '40-44' | age == '45-49' | age == '50-54' | age == '55-59', 3,
                                               ifelse(age == '60-64' | age == '65-69' | age == '70-74' | age == '75-79', 4, 5))))) %>% 
-        select(-age) 
+        dplyr::select(-age) 
       
       CalwData4 <- CalwData4[complete.cases(CalwData4),]
       
@@ -1751,7 +1751,7 @@ server <- function(input, output) {
     output$timetrend3 <- renderPlot({
       
       Calwnew <- CalwData %>%
-        select(reportDate, age) %>%
+        dplyr::select(reportDate, age) %>%
         group_by(reportDate) %>%
         summarise(count = n())
       
@@ -1766,7 +1766,7 @@ server <- function(input, output) {
     output$timetrend <- renderPlot({
       
       Calwnew <- CalwData %>%
-        select(reportDate, age) %>%
+        dplyr::select(reportDate, age) %>%
         group_by(age, reportDate) %>%
         summarise(count = n())
       
@@ -1786,7 +1786,7 @@ server <- function(input, output) {
                                               ifelse(age == '60-64' | age == '65-69' | age == '70-74' | age == '75-79', '60-79', '80+')))))
       
       Calwnew <- Calwnew %>%
-        select(reportDate, Age_Cat) %>%
+        dplyr::select(reportDate, Age_Cat) %>%
         group_by(Age_Cat, reportDate) %>%
         summarise(count = n())
       
