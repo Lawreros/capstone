@@ -595,7 +595,7 @@ server <- function(input, output) {
       
       CalwData4 <- CalwData4[complete.cases(CalwData4),]
       
-      boxplot(CalwData4$delayed.testing~CalwData4$Age_Cat, col="skyblue", main='Days to take Test since Symptoms Onset by Age', xlab="Age", ylab="# of days of delayed testing")
+      boxplot(CalwData4$delayed.testing~CalwData4$Age_Cat, col="skyblue", main='Delayed Testing by Age', xlab="Age", ylab="# of days of delayed testing")
       
     })
     
@@ -647,7 +647,7 @@ server <- function(input, output) {
       
       CalwData4 <- CalwData4[complete.cases(CalwData4),]
       
-      boxplot(CalwData4$delayed.testing~CalwData4$traveled, col="skyblue", main='Days to take Test Since Symptoms by Previous Travel', xlab="Traveled", ylab="# of Days Delayed Testing")
+      boxplot(CalwData4$delayed.testing~CalwData4$traveled, col="skyblue", main='Delayed Testing by Previous Travel', xlab="Traveled", ylab="# of Days Delayed Testing")
       
     })
     
