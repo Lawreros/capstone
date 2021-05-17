@@ -37,7 +37,7 @@ library(corrr)
 #library(MASS) 
 
 
-ui<- fluidPage(theme = shinytheme('slate'),
+ui<- fluidPage(theme = shinytheme('sandstone'),
     tabsetPanel(
       tabPanel("Data Summary", fluid = TRUE,
                sidebarLayout(
@@ -58,32 +58,34 @@ ui<- fluidPage(theme = shinytheme('slate'),
                  )
                )
       ),
-      tabPanel("A", fluid = TRUE,
+      tabPanel("Covid Impact in Germany", fluid = TRUE,
                sidebarLayout(
                  sidebarPanel(
                    sliderInput("map_date",
-                               "Dates:",
+                               "Interactive Heatmap Date:",
                                min = as.Date("2020-03-04","%Y-%m-%d"),
                                max = as.Date("2021-05-11","%Y-%m-%d"),
                                value=as.Date("2020-03-20"),
                                timeFormat="%Y-%m-%d"),
-                   radioButtons("radio", label = h3("Radio buttons"),
+                   radioButtons("radio", label = h4("Heatmap: Display Number of Cases or Deaths"),
                                 choices = list("Case" = 'cases', "Dead" = 'deaths'), 
                                 selected = 'cases'),
-                   radioButtons("per_k", label = h3("Scale Data"),
-                                choices = list("None" = -1, "Difference" = 0,"Normalized"=1, "1000" = 1000),
+                   radioButtons("per_k", label = h4("Scale Data"),
+                                choices = list("Daily Count"=0,"Cumulative" = -1,"Cumulative Percent of Population"=1, "Cumulative Per 1000 people" = 1000),
                                 selected = 1),
-                   checkboxGroupInput('plot_cat', label=h3('Plot type'),
+                   checkboxGroupInput('plot_cat', label=h4('Plot Number of Cases and/or Deaths'),
                                  choices = list('Case'='cases', 'Dead'='deaths'),
                                  selected='cases'),
-                   dateRangeInput('plot_range', label=h3('plot date range'), 
+                   dateRangeInput('plot_range', label=h4('Plot Time Window'), 
                                   start = "2020-03-04", end = "2021-05-11", 
                                   min = "2020-03-04", max = "2021-05-11", 
                                   format = "yyyy-mm-dd", 
                                   startview = "month",language = "en", separator = " to "),
+                   p(strong("Reset Selected Counties")),
                    actionButton("reset", label = "Reset")
                  ),
                  mainPanel(
+                   p(strong("Interactive Covid Map for Germany")),
                    leafletOutput('covid_map'),
                    #textOutput('testthis'),
                    plotlyOutput('countytime')
@@ -591,7 +593,7 @@ server <- function(input, output) {
                               
                               label = ~paste0(GEN, ": ", formatC(unlist(with(dat,dat[(dat$time == input$map_date & dat$category == input$radio),-c(1,403,404)])), big.mark = ",")),layerId = seq.int(2,403)) %>%
                           addLegend(pal = pal, title=paste('New ',input$radio,sep=' '),values = with(dat,dat[(dat$time == input$map_date & dat$category == input$radio),-c(1,403,404)]), opacity = 1.0) %>%
-                          addMarkers(8.7, 50, popup ="Offenbach", label = "Offenbach")
+                          addMarkers(8.7, 48.6, popup ="Offenbach", label = "Offenbach")
     })
     
     
@@ -634,7 +636,7 @@ server <- function(input, output) {
           dat <-with(m_dat,m_dat[(m_dat$category %in% input$plot_cat & m_dat$time %in%seq(as.Date(input$plot_range[1]), as.Date(input$plot_range[2]), "days")),])
           dat<-reshape2::melt(dat[,c('time','category',new_name[clicks$Clicks])], id=c('time','category'))
           dat$variable <- as.character(dat$variable)
-          dat <- tidyr::unite(dat,"id_loc",variable,category,remove = F, sep=' ')
+          dat <- tidyr::unite(dat,"County",variable,category,remove = F, sep=' ')
           
           ggplot(dat, aes(time, value, colour = County)) + 
             geom_point()+
@@ -655,6 +657,7 @@ server <- function(input, output) {
       output$testth <- renderText(p_corr$id)
       popul <- popu
       dat <-m_dat
+      dat[-NROW(dat),colnames(dat[,-c(1,403,404)])] <- data.frame(diff(as.matrix(dat[colnames(dat[,-c(1,403,404)])])))
       corr_dat<-as.data.frame(correlate(with(dat,dat[(dat$category==input$radio2),-c(1,403,404)])))
       corr_dat[is.na(corr_dat)]<-1
       
@@ -674,7 +677,7 @@ server <- function(input, output) {
                     
                     label = ~paste0(GEN, ": ", formatC(unlist(corr_dat[p_corr$id,-1]), big.mark = ",")),layerId = seq.int(2,403)) %>%
         addLegend(pal = pal, title=paste('New ',input$radio2,sep=' '),values = corr_dat[p_corr$id,-1], opacity = 1.0) %>%
-        addMarkers(8.7, 50, popup ="Offenbach", label = "Offenbach")
+        addMarkers(8.7, 48.6, popup ="Calw", label = "Calw")
     })
     
     
