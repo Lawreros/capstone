@@ -19,8 +19,17 @@ Conducted descriptive analyses of *Delay in Testing* using density curves by cal
 
 A Multiple Linear Regression model was fitted for *delayed testing* as the dependent variable, and *Age (Category), Contact Source*, and *Travel History* as the predictor variables. Based on the MLR model, the Calculator section calculates the predicted number of days for an individual to take a test after symptoms onset based on selected features for the predictor variables. Underneath the calculator, there is a summary table for the Multiple Linear Regression, codebook for reference variables, interpretations and effect plots of each variable. 
 
+***Tab Time Trend (Lauren Norris)***
 
+Created time trend of COVID-19 cases over time from December 2020 - Present. Time trend plots included: total number of cases over time, number of cases stratified into five-year age bins over time, and number of cases stratified into twenty-year age bins over time. I added a smooth line to each plot for easier visualization.
 
+***Tab Probability of Death - MLR (Lauren Norris)***
+
+Ran a multiple logistic regression model to model the odds of death given age category and sex. The input panel allows user to select sex and age-category (twenty-year bins) and the model will calculate and spit out the predicted probability of death. The logistic regression results table is reported, and odds ratios interpreted. 
+
+***Tab Association Death, Age, Sex (Lauren Norris)***
+
+Created mosaic plots using plotly that show the number of individuals alive and dead by sex and age-category (twenty-year age bin). Ran chi-square tests and reported p-values to test whether or not there is a significant association between condition (alive/dead) and sex, and condition (alive/dead) and age-category. 
 
 
 #### Variables Used: 
