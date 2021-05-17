@@ -1,6 +1,5 @@
 ## Link to Shiny App:
 ## Link to Video Files:
-=======
 # Project Title
 
 ### Main Goal: 
@@ -8,6 +7,11 @@
 ### Project Description: 
 
 ### Application Overview: 
+
+***Tab Covid Impact in Germany*** *(Ross Lawrence)*
+*Use: Interactive district map of Germany, allowing for the visualization of incidence and mortality rates across districts. Can be used to compare other districts to Calw using several normalization methods by clicking districts on the map.*
+
+Using the case and death data collected by the Robert Koch Institute and compiled online in an open-access github repository found [here](https://github.com/jgehrcke/covid-19-germany-gae), provided a method by which to compare Calw's reaction to Covid to other districts in Germany. Included the ability to specify which of several metrics to use for the normalization of data (rate per person, novel cases/deaths for a given day, cumulative amount per 1000 people). Applies a Local Polynomial Regression curve to the novel cases/deaths in order to represent trends amongst the scatterplot.
 
 ***Tab Delayed Testing - Descriptive*** *(Kate Kim)* 
 
@@ -84,6 +88,10 @@ Required Libraries:
 - library(shiny)
 - library(ggplot2)
 - library(dplyr)
+- library(tidyr)
+- library(leaflet)
+- library(geojsonR)
+- library(shinythemes)
 - library(sjPlot)
 - library(sjmisc)
 - library(sjlabelled)
@@ -94,16 +102,20 @@ Required Libraries:
 - library(car)
 - library(jtools)
 - library(magrittr)
+- library(lubridate)
 - library(ggsci)
-- library(MASS) 
-- library(plotly) 
+library(plotly)
+library(reshape2)
+library(corrr)
+library(MASS)
+library(knitr)
 
 
 #### Credits: 
 Kate Kim, MPH Candidate '21, Johns Hopkins University, Bloomberg School of Public Health ([https://github.com/ks00jinkim](url))
 Lauren Norris, MHS Candidate '21, Johns Hopkins University, Bloomberg School of Public Health ([https://github.com/ldnorris](url))
 Alexandra Malinovska, MD, ScM Candidate, Department of Epidemiology, Johns Hopkins Bloomberg School of Public Health ([https://github.com/Alexa-Malina](url))
-Ross Lawrence
+Ross Lawrence, BME MSE '21 Johns Hopkins University
 
 #### Acknowledgment
 We want to thank the health department Calw for providing this interesting and real-life data. We thank Dr. Frank Wiehe, first state official and Dr. Philip-Rene' Retzbach, legal counsel for their support. A special thank you to Iris Brilhaus, medical doctor in the Corona task force of district office Calw, for the introduction into the data and health department processes and all fruitful discussions in her free time.
@@ -132,6 +144,10 @@ Case recording data was extraction and anonymized by Iris Brilhaus, MD in the Co
 #### Data cleaning and translation
 
 Data cleaning and translation in English was performed by Alexandra Malinovska. Only the cleaned and translated data is available here. The data set might be different from official records, because some participants with missing data were excluded. Missing data could be attributed to missing laboratory test, which were captured with a different software. Since analysis should include only patients with a recorded positive laboratory test, only these participants are contained in the data set. Questions about data cleaning and translation can be directed to her.
+
+
+### German Heatmap Dataset
+The data used in the creation of the interactive heatmap comes from aggregated data collected by the Robert Koch Institute and compiled online in an open-access github repository found [here](https://github.com/jgehrcke/covid-19-germany-gae). The aggregate case and death numbers, along with the total population inside of each district were collected from the most current files as of 05/15/2021.'),
 
 #### Maintenance
 The last data extraction was performed on May 13, 2021, further data updates and maintenance of the app will be discussed with the health department Calw.
