@@ -32,6 +32,7 @@ library(lubridate)
 library(ggsci)
 library(ggrepel)
 library(plotly)
+library(reshape2)
 #library(MASS) 
 
 
@@ -66,16 +67,25 @@ ui<- fluidPage(theme = shinytheme('slate'),
                                value=as.Date("2020-03-20"),
                                timeFormat="%Y-%m-%d"),
                    radioButtons("radio", label = h3("Radio buttons"),
-                                choices = list("Choice 1" = 'case', "Choice 2" = 'death'), 
-                                selected = 'case'),
+                                choices = list("Case" = 'cases', "Dead" = 'deaths'), 
+                                selected = 'cases'),
                    radioButtons("per_k", label = h3("Scale Data"),
-                                choices = list("None" = 0,"Normalized"=1, "1000" = 1000),
-                                selected = 1)
+                                choices = list("None" = -1, "Difference" = 0,"Normalized"=1, "1000" = 1000),
+                                selected = 1),
+                   checkboxGroupInput('plot_cat', label=h3('Plot type'),
+                                 choices = list('Case'='cases', 'Dead'='deaths'),
+                                 selected='cases'),
+                   dateRangeInput('plot_range', label=h3('plot date range'), 
+                                  start = "2020-03-04", end = "2021-05-11", 
+                                  min = "2020-03-04", max = "2021-05-11", 
+                                  format = "yyyy-mm-dd", 
+                                  startview = "month",language = "en", separator = " to "),
+                   actionButton("reset", label = "Reset")
                  ),
                  mainPanel(
                    leafletOutput('covid_map'),
-                   textOutput('testthis'),
-                   plotOutput('countytime')
+                   #textOutput('testthis'),
+                   plotlyOutput('countytime')
                  )
                )
       ),
@@ -520,18 +530,19 @@ server <- function(input, output) {
     
     #### Tab A
     
-    pal <- colorNumeric("viridis", NULL)
+    pal <- colorNumeric("plasma", NULL)
     nycounties <- rgdal::readOGR("DE-counties.geojson")
     
     c_dat <- read.csv('cases-rki-by-ags.csv')
     c_dat <- c_dat %>% rename(sum = sum_cases)
-    c_dat$category <- 'case'
+    c_dat$category <- 'cases'
     d_dat <- read.csv('deaths-rki-by-ags.csv')
-    d_dat$category <- 'death'
+    d_dat$category <- 'deaths'
     d_dat <- d_dat %>% rename(sum = sum_deaths)
     
     m_dat <- rbind(c_dat,d_dat)
     m_dat <- m_dat[,c(1:325,414,338:413,415,416)]
+    rm(c_dat,d_dat)
     
     m_dat$time_iso8601 <- as.Date(m_dat$time_iso8601,"%Y-%m-%dT")
     new_name <- paste0(make.names(nycounties@data$GEN), "_", make.names(nycounties@data$BEZ), "")
@@ -545,14 +556,15 @@ server <- function(input, output) {
     popu <- append(popu,sum(popu))
     
     
-    
-    
     output$covid_map <- renderLeaflet({
       
       if(input$per_k > 0){
         popul <- popu/as.integer(input$per_k)
         dat <-m_dat
         dat[colnames(dat[,-c(1,403,404)])]<-sweep(dat[colnames(dat[,-c(1,403,404)])],2,popul,FUN = '/')
+      }else if (input$per_k == 0){
+        dat <-m_dat
+        dat[-NROW(dat),colnames(dat[,-c(1,403,404)])] <- data.frame(diff(as.matrix(dat[colnames(dat[,-c(1,403,404)])])))
       }else{
         dat<-m_dat
       }
@@ -562,7 +574,7 @@ server <- function(input, output) {
                           addTiles()%>%
                           addPolygons(stroke = FALSE, smoothFactor = 0.3, fillOpacity = 0.7,
                               fillColor = pal(unlist(with(dat,dat[(dat$time == input$map_date & dat$category == input$radio),-c(1,403,404)]),use.names = FALSE)),
-                              # Highlight neighbourhoods upon mouseover
+                              # Highlight upon mouseover
                               highlight = highlightOptions(
                               weight = 30,
                               fillOpacity = 0.9,
@@ -572,46 +584,59 @@ server <- function(input, output) {
                               #sendToBack = TRUE), 
                               
                               label = ~paste0(GEN, ": ", formatC(unlist(with(dat,dat[(dat$time == input$map_date & dat$category == input$radio),-c(1,403,404)])), big.mark = ",")),layerId = seq.int(2,403)) %>%
-                          addLegend(pal = pal, title='new cases per 100k in last 7 days',values = ~log10(unlist(with(dat,dat[(dat$time == input$map_date & dat$category == input$radio),-c(1,403,404)]),use.names = FALSE)+1), opacity = 1.0,
-                              labFormat = labelFormat(transform = function(x) round(10^x)))
-    }) #, layerId = nycounties@data$GEN
+                          addLegend(pal = pal, title=paste('New ',input$radio,sep=' '),values = with(dat,dat[(dat$time == input$map_date & dat$category == input$radio),-c(1,403,404)]), opacity = 1.0) %>%
+                          addMarkers(8.7, 50, popup ="Offenbach", label = "Offenbach")
+    })
+    
+    
+    clicks = reactiveValues(Clicks=c())
+    
+    observeEvent(input$reset, {
+      clicks$Clicks <- NULL
+    })
     
     observeEvent(input$covid_map_shape_click, { # update the location selectInput on map clicks
       p <- input$covid_map_shape_click
-      output$testthis <- renderText(p$id)
+      #output$testthis <- renderText(clicks$Clicks)
+      clicks$Clicks<-c(clicks$Clicks,p$id)
       
-      output$countytime <- renderPlot({
+      output$countytime <- renderPlotly({
         if(input$per_k > 0){
           popul <- popu/as.integer(input$per_k)
-          dat <-m_dat
+          dat <-with(m_dat,m_dat[(m_dat$category %in% input$plot_cat & m_dat$time %in%seq(as.Date(input$plot_range[1]), as.Date(input$plot_range[2]), "days")),])
           dat[colnames(dat[,-c(1,403,404)])]<-sweep(dat[colnames(dat[,-c(1,403,404)])],2,popul,FUN = '/')
+          dat<-reshape2::melt(dat[,c('time','category',new_name[clicks$Clicks])], id=c('time','category'))
+          dat$variable <- as.character(dat$variable)
+          dat <- tidyr::unite(dat,"County",variable,category,remove = F, sep=' ')
           
-          ggplot(dat, aes_string("time", new_name[p$id], colour = "category")) + 
+          ggplot(dat,aes(time, value , colour = County)) + 
           geom_point()+
-          # scale_y_continuous(
-          #   trans = "log10",
-          #   breaks = 1:10
-          # )+
-          geom_vline(xintercept = input$map_date, linetype="dotted")
+          geom_vline(xintercept = input$map_date, linetype="dotted", size=2)
+        }else if (input$per_k == 0){
+          dat <-m_dat
+          dat[-NROW(dat),colnames(dat[,-c(1,403,404)])] <- data.frame(diff(as.matrix(dat[colnames(dat[,-c(1,403,404)])])))
+          dat <-with(dat,dat[(dat$category %in% input$plot_cat & dat$time %in%seq(as.Date(input$plot_range[1]), as.Date(input$plot_range[2]), "days")),])
+          dat<-reshape2::melt(dat[,c('time','category',new_name[clicks$Clicks])], id=c('time','category'))
+          dat$variable <- as.character(dat$variable)
+          dat <- tidyr::unite(dat,"County",variable,category,remove = F, sep=' ')
+          
+          ggplot(dat, aes(time, value, colour = County)) + 
+            geom_point(alpha=0.3)+
+            geom_smooth(method = "loess", size = 1.5)+
+            geom_vline(xintercept = input$map_date, linetype="dotted", size=2)
         }else{
-          ggplot(dat, aes_string("time", new_name[p$id], colour = "category")) + 
+          dat <-with(m_dat,m_dat[(m_dat$category %in% input$plot_cat & m_dat$time %in%seq(as.Date(input$plot_range[1]), as.Date(input$plot_range[2]), "days")),])
+          dat<-reshape2::melt(dat[,c('time','category',new_name[clicks$Clicks])], id=c('time','category'))
+          dat$variable <- as.character(dat$variable)
+          dat <- tidyr::unite(dat,"id_loc",variable,category,remove = F, sep=' ')
+          
+          ggplot(dat, aes(time, value, colour = County)) + 
             geom_point()+
-            # scale_y_continuous(
-            #   trans = "log10",
-            #   breaks = 1:10
-            # )+
-            geom_vline(xintercept = input$map_date, linetype="dotted")
+            geom_vline(xintercept = input$map_date, linetype="dotted", size=2)
       }
       })
       
     })
-    
-    ####
-    
-    
-    #### Symptom composition based on variant
-    # Make a decision tree of sorts, where each node has the percentage of individuals with a given symptom combination
-    # http://www.milbo.org/rpart-plot/prp.pdf
     
     
     
