@@ -585,9 +585,12 @@ server <- function(input, output) {
                               bringToFront = TRUE),
                               #sendToBack = TRUE), 
                               
-                              label = ~paste0(GEN, ": ", formatC(unlist(with(dat,dat[(dat$time == input$map_date & dat$category == input$radio),-c(1,403,404)])), big.mark = ",")),layerId = seq.int(2,403)) %>%
-                          addLegend(pal = pal, title=paste('New ',input$radio,sep=' '),values = with(dat,dat[(dat$time == input$map_date & dat$category == input$radio),-c(1,403,404)]), opacity = 1.0) %>%
-                          addMarkers(8.7472, 48.7122, popup ="Calw", label = "Calw")
+                              label = ~paste0(GEN, ": ", formatC(unlist(with(dat,dat[(dat$time == input$map_date & dat$category == input$radio),-c(1,403,404)])), big.mark = ",")),
+                                    layerId = seq.int(2,403)) %>%
+                              addLegend(pal = pal, title=input$radio,
+                                    values = with(dat,dat[(dat$time == input$map_date & dat$category == input$radio),-c(1,403,404)]),
+                                    opacity = 1.0) %>%
+                              addMarkers(8.7472, 48.7122, popup ="Calw", label = "Calw")
     })
     
     
