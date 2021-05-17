@@ -57,7 +57,8 @@ ui<- fluidPage(theme = shinytheme('sandstone'),
       tabPanel("Overview", fluid = TRUE,
                
                mainPanel(
-                 h3("Disclaimer"),
+                 tags$head(tags$style('h2 {color:red;}')),
+                 h2("Disclaimer"),
                  p("The following tool was developed for a class project. 
                    Please be aware that the predictions calculated by this tool rely soley on the available 
                    regressors and DO NOT NECESSARILY IMPLY CAUSATION by said regressors. 
@@ -88,7 +89,7 @@ ui<- fluidPage(theme = shinytheme('sandstone'),
                    processes and use the Sormas software (see data source)"),
                  
                  h3("The Data used in this App"),
-                 h4("Data source"),
+                 h4("Calw Data source"),
                  p("The data used here is data from SORMAS (Surveillance, Outbreak Response Management and Analysis 
                    System) used by the local health department of the district of Calw. 
                    SORMAS is an e-health software developed by the Helmholtz Center for Infection Research 
@@ -116,6 +117,12 @@ ui<- fluidPage(theme = shinytheme('sandstone'),
                    Questions about data cleaning and translation can be directed to her."),
                  h4("Data dictionary"),
                  p("The data dictionary can be found in the Readme file of this App on Github."),
+                 h4('German Heatmap Dataset'),
+                 p('The data used in the creation of the interactive heatmap comes from aggregated data
+                  collected by the Robert Koch Institute and compiled online in an open-access github repository found
+                  here: (https://github.com/jgehrcke/covid-19-germany-gae). The aggregate case and death numbers, along with
+                  the total population inside of each district were collected from the most current files as of
+                  05/15/2021.'),
                  h3("Acknowledgment"),
                  p(" We want to thank the health department Calw for providing this interesting and real-life 
                    data. We thank Dr. Frank Wiehe, first state official and Dr. Philip-Rene' Retzbach, legal 
@@ -164,10 +171,10 @@ ui<- fluidPage(theme = shinytheme('sandstone'),
                                "Interactive Heatmap Date:",
                                min = as.Date("2020-03-04","%Y-%m-%d"),
                                max = as.Date("2021-05-11","%Y-%m-%d"),
-                               value=as.Date("2020-03-20"),
+                               value=as.Date("2020-08-11"),
                                timeFormat="%Y-%m-%d"),
                    radioButtons("per_k", label = h4("Scale Data"),
-                                choices = list("New Occurances"=0,"Cumulative" = -1,"Rate Per Person"=1, "Cumulative Per 1000 people" = 1000),
+                                choices = list("New Occurances (with Local Polynomial Regression curve)"=0,"Cumulative" = -1,"Rate Per Person"=1, "Cumulative Per 1000 people" = 1000),
                                 selected = 1),
                    radioButtons("radio", label = h4("Heatmap: Display Number of Cases or Deaths"),
                                 choices = list("Case" = 'cases', "Dead" = 'deaths'), 
@@ -344,9 +351,9 @@ ui<- fluidPage(theme = shinytheme('sandstone'),
                                                 }"
                           )
                            ),
-                           h4('Outcome = Death'),
-                           h4('Predictors = Age-Category and Sex'),
-                           h5('Codebook:'),
+                           h4('Codebook:'),
+                           h5('Outcome = Death'),
+                           h5('Predictors = Age-Category and Sex'),
                            h5('Males = reference; Age Category 0-19 = reference'),
                            htmlOutput('logvar'),
                            h3('Odds Ratio Interpretations:'),
@@ -620,6 +627,8 @@ server <- function(input, output) {
       clicks$Clicks<-c(clicks$Clicks,p$id)
       
       output$countytime <- renderPlotly({
+        if(is.null(clicks$Clicks)==FALSE){
+        
         if(input$per_k > 0){
           popul <- popu/as.integer(input$per_k)
           dat <-with(m_dat,m_dat[(m_dat$category %in% input$plot_cat & m_dat$time %in%seq(as.Date(input$plot_range[1]), as.Date(input$plot_range[2]), "days")),])
@@ -652,7 +661,8 @@ server <- function(input, output) {
           ggplot(dat, aes(time, value, colour = District)) + 
             geom_point()+
             geom_vline(xintercept = input$map_date, linetype="dotted", size=2)
-      }
+        }
+        }
       })
       
     })
