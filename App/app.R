@@ -468,7 +468,7 @@ server <- function(input, output) {
   
   
   
-    load('../CalwData.RData')
+    load('CalwData.RData')
     #Convert reportDate from string to actual date factor
     #CalwData$reportDate <- as.Date(CalwData$reportDate, "%Y-%m-%d")
   CalwData %<>%
