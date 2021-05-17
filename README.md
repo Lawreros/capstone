@@ -1,10 +1,16 @@
 # Project Title
+## Shiny Link:
+## Video Link:
 
-### Main Goal: 
-
-### Project Description: 
+### Project Description:
+The Purpose of this project was to analyze the Covid-19 case and death rates with respect to Germany, with additional emphasis placed on the Calw county, where we were able to acquire a more detailed composition of infected individuals. Analysis is performed on the symptoms ... Through modeling how Calw has faired during the epidemic with respect to the rest of Germany, it can give an idea to the composition of the infected across Germany.
 
 ### Application Overview: 
+
+***Covid Impact in Germany*** *(Ross Lawrence)*
+*Use: An interactive map which displays the Covid case and death statistics across Germany, allowing for the plotting and comparison of each district.*
+
+Using the (aggregated data from the Robert Koch Institute)[https://github.com/jgehrcke/covid-19-germany-gae], an interactive map of the documented case and death numbers for each county in Germany was created. 
 
 ***Tab Delayed Testing - Descriptive*** *(Kate Kim)* 
 
