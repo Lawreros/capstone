@@ -31,6 +31,7 @@ library(magrittr)
 library(lubridate)
 library(ggsci)
 library(ggrepel)
+library(plotly)
 #library(MASS) 
 
 
@@ -66,7 +67,10 @@ ui<- fluidPage(theme = shinytheme('slate'),
                                timeFormat="%Y-%m-%d"),
                    radioButtons("radio", label = h3("Radio buttons"),
                                 choices = list("Choice 1" = 'case', "Choice 2" = 'death'), 
-                                selected = 'case')
+                                selected = 'case'),
+                   radioButtons("per_k", label = h3("Scale Data"),
+                                choices = list("None" = 0,"Normalized"=1, "1000" = 1000),
+                                selected = 1)
                  ),
                  mainPanel(
                    leafletOutput('covid_map'),
@@ -526,19 +530,38 @@ server <- function(input, output) {
     d_dat$category <- 'death'
     d_dat <- d_dat %>% rename(sum = sum_deaths)
     
-    dat <- rbind(c_dat,d_dat)
-    dat <- dat[,c(1:325,414,338:413,416)]
+    m_dat <- rbind(c_dat,d_dat)
+    m_dat <- m_dat[,c(1:325,414,338:413,415,416)]
     
-    dat$time_iso8601 <- as.Date(dat$time_iso8601,"%Y-%m-%dT")
+    m_dat$time_iso8601 <- as.Date(m_dat$time_iso8601,"%Y-%m-%dT")
     new_name <- paste0(make.names(nycounties@data$GEN), "_", make.names(nycounties@data$BEZ), "")
-    new_name <- append('time', c(new_name[1:400],'germany','category'))
-    colnames(dat) <- new_name
+    new_name <- append('time', c(new_name[1:401],'germany','category'))
+    colnames(m_dat) <- new_name
+    dat <- m_dat
+    
+    #Load population information
+    popu <- read.csv('latest-aggregate.csv')
+    popu <- popu[c(1:325,338:412),4]
+    popu <- append(popu,sum(popu))
     
     
-    output$covid_map <- renderLeaflet({leaflet(nycounties)%>%
+    
+    
+    output$covid_map <- renderLeaflet({
+      
+      if(input$per_k > 0){
+        popul <- popu/as.integer(input$per_k)
+        dat <-m_dat
+        dat[colnames(dat[,-c(1,403,404)])]<-sweep(dat[colnames(dat[,-c(1,403,404)])],2,popul,FUN = '/')
+      }else{
+        dat<-m_dat
+      }
+      
+      
+      leaflet(nycounties)%>%
                           addTiles()%>%
                           addPolygons(stroke = FALSE, smoothFactor = 0.3, fillOpacity = 0.7,
-                              fillColor = pal(unlist(with(dat,dat[(dat$time == input$map_date & dat$category == input$radio),-c(1,402,403)]),use.names = FALSE)),
+                              fillColor = pal(unlist(with(dat,dat[(dat$time == input$map_date & dat$category == input$radio),-c(1,403,404)]),use.names = FALSE)),
                               # Highlight neighbourhoods upon mouseover
                               highlight = highlightOptions(
                               weight = 30,
@@ -548,8 +571,8 @@ server <- function(input, output) {
                               bringToFront = TRUE),
                               #sendToBack = TRUE), 
                               
-                              label = ~paste0(GEN, ": ", formatC(unlist(with(dat,dat[(dat$time == input$map_date & dat$category == input$radio),-c(1,402,403)])), big.mark = ",")),layerId = seq.int(2,402)) %>%
-                          addLegend(pal = pal, title='new cases per 100k in last 7 days',values = ~log10(unlist(with(dat,dat[(dat$time == input$map_date & dat$category == input$radio),-c(1,402,403)]),use.names = FALSE)+1), opacity = 1.0,
+                              label = ~paste0(GEN, ": ", formatC(unlist(with(dat,dat[(dat$time == input$map_date & dat$category == input$radio),-c(1,403,404)])), big.mark = ",")),layerId = seq.int(2,403)) %>%
+                          addLegend(pal = pal, title='new cases per 100k in last 7 days',values = ~log10(unlist(with(dat,dat[(dat$time == input$map_date & dat$category == input$radio),-c(1,403,404)]),use.names = FALSE)+1), opacity = 1.0,
                               labFormat = labelFormat(transform = function(x) round(10^x)))
     }) #, layerId = nycounties@data$GEN
     
@@ -558,13 +581,27 @@ server <- function(input, output) {
       output$testthis <- renderText(p$id)
       
       output$countytime <- renderPlot({
-         ggplot(dat, aes_string("time", new_name[p$id], colour = "category")) + 
+        if(input$per_k > 0){
+          popul <- popu/as.integer(input$per_k)
+          dat <-m_dat
+          dat[colnames(dat[,-c(1,403,404)])]<-sweep(dat[colnames(dat[,-c(1,403,404)])],2,popul,FUN = '/')
+          
+          ggplot(dat, aes_string("time", new_name[p$id], colour = "category")) + 
           geom_point()+
           # scale_y_continuous(
           #   trans = "log10",
           #   breaks = 1:10
           # )+
           geom_vline(xintercept = input$map_date, linetype="dotted")
+        }else{
+          ggplot(dat, aes_string("time", new_name[p$id], colour = "category")) + 
+            geom_point()+
+            # scale_y_continuous(
+            #   trans = "log10",
+            #   breaks = 1:10
+            # )+
+            geom_vline(xintercept = input$map_date, linetype="dotted")
+      }
       })
       
     })
