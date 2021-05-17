@@ -133,23 +133,23 @@ ui<- fluidPage(theme = shinytheme('sandstone'),
                sidebarLayout(
                  sidebarPanel(
                    h3('Select Age Category:'),
-                   checkboxGroupInput("agetimeln", label=h3("Five Year Bins:"),
+                   checkboxGroupInput("agetimeln", label="Five Year Bins:",
                                       choices = list('0-4','5-9','10-14','15-19','20-24','25-29','30-34','35-39','40-44','45-49','50-54',
                                                      '55-59','60-64','65-69','70-74','75-79','80-84','85-89','90-94','95-99','100-104'),
                                       selected = '0-4'
                    ),
-                   checkboxGroupInput("agewideln", label=h3("Twenty Year Bins:"),
+                   checkboxGroupInput("agewideln", label="Twenty Year Bins:",
                                       choices = list('0-19','20-39','40-59','60-79','80+'),
                                       selected = '0-19'
                    )
                  ),
                  mainPanel(
-                   h2('COVID-19 Cases by Age Time Trend: December 2020 - May 2021'),
-                   h3('Total Cases Over Time:'),
+                   h3('Calw COVID-19 Cases by Age Time Trend: December 2020 - May 2021'),
+                   #h4('Total Cases Over Time:'),
                    plotOutput('timetrend3'),
-                   h3('Five Year Age Bins:'),
+                   h4('Five Year Age Bins:'),
                    plotOutput('timetrend'),
-                   h3('Twenty Year Age Bins:'),
+                   h4('Twenty Year Age Bins:'),
                    plotOutput('timetrend2')
                  )
                )
@@ -159,6 +159,7 @@ ui<- fluidPage(theme = shinytheme('sandstone'),
       tabPanel("Covid Impact in Germany", fluid = TRUE,
                sidebarLayout(
                  sidebarPanel(
+                   h3('Select Interactive Map and Plot Parameters'),
                    sliderInput("map_date",
                                "Interactive Heatmap Date:",
                                min = as.Date("2020-03-04","%Y-%m-%d"),
@@ -166,24 +167,24 @@ ui<- fluidPage(theme = shinytheme('sandstone'),
                                value=as.Date("2020-03-20"),
                                timeFormat="%Y-%m-%d"),
                    radioButtons("per_k", label = h4("Scale Data"),
-                                choices = list("Daily Count"=0,"Cumulative" = -1,"Cumulative Percent of Population"=1, "Cumulative Per 1000 people" = 1000),
+                                choices = list("New Occurances"=0,"Cumulative" = -1,"Rate Per Person"=1, "Cumulative Per 1000 people" = 1000),
                                 selected = 1),
                    radioButtons("radio", label = h4("Heatmap: Display Number of Cases or Deaths"),
                                 choices = list("Case" = 'cases', "Dead" = 'deaths'), 
                                 selected = 'cases'),
-                   checkboxGroupInput('plot_cat', label=h4('Plot Number of Cases and/or Deaths'),
-                                 choices = list('Case'='cases', 'Dead'='deaths'),
-                                 selected='cases'),
                    dateRangeInput('plot_range', label=h4('Plot Time Window'), 
                                   start = "2020-03-04", end = "2021-05-11", 
                                   min = "2020-03-04", max = "2021-05-11", 
                                   format = "yyyy-mm-dd", 
                                   startview = "month",language = "en", separator = " to "),
+                   checkboxGroupInput('plot_cat', label=h4('Plot Number of Cases and/or Deaths'),
+                                 choices = list('Case'='cases', 'Dead'='deaths'),
+                                 selected='cases'),
                    p(strong("Reset Selected Districts in Plot")),
                    actionButton("reset", label = "Reset")
                  ),
                  mainPanel(
-                   p(strong("Interactive Covid Map for Germany (click on Districts to plot timeseries)")),
+                   h3("Interactive Covid Map for Germany (click on Districts to plot timeseries)"), 
                    leafletOutput('covid_map'),
                    #textOutput('testthis'),
                    plotlyOutput('countytime')
@@ -213,7 +214,7 @@ ui<- fluidPage(theme = shinytheme('sandstone'),
                
                sidebarLayout(
                  sidebarPanel(p(em("How to use: Select criteria for variables and click on respective tab to view results.")),
-                              h4("Select by:"),
+                              h3("Select by:"),
                               checkboxGroupInput("ages2", label=h4("Age Group"),
                                                  choices = list("0-19" = "0-19","20-39" = "20-39","40-59" = "40-59","60-79" = "60-79","80+" = "80+"),
                                                  selected = '0-19'),
@@ -251,20 +252,26 @@ ui<- fluidPage(theme = shinytheme('sandstone'),
                sidebarLayout(
                  sidebarPanel(p(em("How to use: Select criteria for variables below to view results.")),
                               h3("Select Features:"),
-                              selectInput("ages3", label=h3("Age Category"),
+                              selectInput("ages3", label="Age Category",
                               choices = list("0-19" = "0-19","20-39" = "20-39","40-59" = "40-59","60-79" = "60-79","80+" = "80+"),
                                selected = "0-19"),
-                              selectInput("traveled3", label=h3("Previous Travel"),
+                              selectInput("traveled3", label="Previous Travel",
                                choices = list("yes", "no"),
                                selected = "yes"),
-                              selectInput("contact3", label=h3("Known Contact"),
+                              selectInput("contact3", label="Known Contact",
                                choices = list("yes", "no","unknown"),
                                selected = "yes")
                  ),
-                 mainPanel(h4("Expected Delayed Testing"),
+                 mainPanel(h3("Expected Delayed Testing"),
                            h4("Calculator"),
                            h5("Expected number of days after symptoms onset individual takes COVID-19 test"),
                            textOutput('linreg'),
+                           tags$head(tags$style("#linreg{color: red;
+                                 font-size: 20px;
+                                                font-style: italic;
+                                                }"
+                          )
+                           ),
                            br(),
                            br(),
                            h4("Multiple Linear Regression Model"),
@@ -289,7 +296,7 @@ ui<- fluidPage(theme = shinytheme('sandstone'),
     
         
        tabPanel("Death, Age, Sex Association", fluid = TRUE,
-               headerPanel("Association between Sex, Age and Condition (Alive/Dead)"),
+               #headerPanel("Association between Sex, Age and Condition (Alive/Dead)"),
                sidebarLayout(
                  sidebarPanel(h3('Summary of Analysis:'),
                               h5('In this tab, we evaluate the association between sex, age-category, and condition.'),
@@ -297,16 +304,16 @@ ui<- fluidPage(theme = shinytheme('sandstone'),
                               h5('Persons with unknown or missing sex, age, or condition were excluded from analysis.'),
                               h5('Chi-square tests were used to test for significant associations.')
                    ),
-                 mainPanel(h1("Association Results:"),
-                           h2('Sex Results'),
-                           h3('Chi-square Test:Sex and Condition'),
-                           h4('A chi-square test indicates condition is not significantly associated with sex (p = 0.09.)'),
+                 mainPanel(h3("Association between Sex, Age and Condition (Alive/Dead)"),
+                           h4('Sex Results:'),
+                           h5('Chi-square Test:Sex and Condition'),
+                           h5('A chi-square test indicates condition is not significantly associated with sex (p = 0.09.)'),
                       textOutput('chisq'),
                       h3('Mosaic Plot: Sex'),
                       plotlyOutput('sexmosaic'),
-                 h2("Age Category Results"),
-                      h3('Chi-Square Test: Age and Condition'),
-                      h4('A chi-square test indicates condition is significantly associated with age (p<0.001).'),
+                 h4("Age Category Results:"),
+                      h5('Chi-Square Test: Age and Condition'),
+                      h5('A chi-square test indicates condition is significantly associated with age (p<0.001).'),
                       textOutput('chisqage'),
                       h3('Mosaic Plot: Age Category'),
                       plotlyOutput('agemosaic')
@@ -328,7 +335,15 @@ ui<- fluidPage(theme = shinytheme('sandstone'),
                                 choices = list('0-19','20-39','40-59','60-79','80+'),
                                 selected = '0-19')
                    ),
-                 mainPanel(h2('Odds of Death Given Sex and Age'),
+                 mainPanel(h3('Odds of Death Given Sex and Age'),
+                           h5('Given your selected age category and sex, your percent chance of death is:'),
+                           textOutput('predict'),
+                           tags$head(tags$style("#predict{color: red;
+                                 font-size: 20px;
+                                                font-style: italic;
+                                                }"
+                          )
+                           ),
                            h4('Outcome = Death'),
                            h4('Predictors = Age-Category and Sex'),
                            h5('Codebook:'),
@@ -338,9 +353,7 @@ ui<- fluidPage(theme = shinytheme('sandstone'),
                            h5('The odds of death for females is 0.42 times the odds of death for males, or significantly lower by 58% (p<0.001).'),
                            h5('The odds of death increases with each increasing age category and is highest in adults over 80 years old. The odds of death in adults over 80 years old is 117.51 times the odds of death in children 0-19 years old (p<0.001).'),
                            h3('Predicted Probability of Death Given Inputs (Age Category and Sex):'),
-                           h5('Chance of death was calculated by converting predicted log odds of death into predicted probability of death. Predicted probabilities were transformed into percentages by multiplying by 100.'),
-                           h5('Given your selected age category and sex, your percent chance of death is:'),
-                           textOutput('predict')
+                           h5('Chance of death was calculated by converting predicted log odds of death into predicted probability of death. Predicted probabilities were transformed into percentages by multiplying by 100.')
                           
                            )
                  
@@ -354,7 +367,7 @@ ui<- fluidPage(theme = shinytheme('sandstone'),
                #h3("Symptom Distribution by Age"),
                fluidRow(
                  column(4,
-                        h4("Symptom Distribution in Total Group"),
+                        h3("Symptom Distribution in Total Group"),
                         plotlyOutput("pieallAM"),
                        
                         
@@ -478,7 +491,6 @@ ui<- fluidPage(theme = shinytheme('sandstone'),
       )))),
       
       
-
       tabPanel("Symptoms - Ordinal Regression on testing time", fluid = TRUE,
                h3( "Ordinal Regression on testing time using symptoms"),
                p("After the descriptive analysis, we wanted to fit a model to try to answer:
@@ -1248,7 +1260,7 @@ server <- function(input, output) {
       
     })
     
-    output$predict <- renderPrint({
+    output$predict <- renderText({
       CalwData2 <- CalwData %>%
         mutate(Age_Cat = ifelse(age == '0-4' | age == '5-9' | age == '10-14' | age == '15-19', 0,
                                 ifelse(age == '20-24' | age == '25-29' | age == '30-34' | age == '35-39', 1,
@@ -1270,9 +1282,9 @@ server <- function(input, output) {
           
       prob <- predict(mylogit, newdata, type="response")
       
-       percent <- prob*100
+       percent <- prob[1]*100
        percent
-       percent %>% as.numeric() 
+       percent[1] %>% as.numeric() 
     })
     
     
@@ -1705,7 +1717,7 @@ server <- function(input, output) {
       scale_fill_simpsons()+
       xlab(paste("\n","symptoms")) + 
       ylab(paste("Propability"))+ 
-      ggtitle("test before symptoms occur")
+      ggtitle("Test before symptoms occur")
     
     
     ggplotly(barplot_comparison_before)
@@ -1774,7 +1786,7 @@ server <- function(input, output) {
         scale_fill_simpsons()+
         xlab(paste("\n","symptoms")) + 
         ylab(paste("Propability"))+ 
-        ggtitle("test immediately when symptoms occur")
+        ggtitle("Test immediately when symptoms occur")
       
       ggplotly(bbarplot_comparison_immediate)
       
@@ -1842,7 +1854,7 @@ server <- function(input, output) {
         scale_fill_simpsons()+
         xlab(paste("\n","symptoms")) + 
         ylab(paste("Propability"))+ 
-        ggtitle("test early after symptoms occur")
+        ggtitle("Test early after symptoms occur")
       
       
       ggplotly(barplot_comparison_early)
@@ -1910,7 +1922,7 @@ server <- function(input, output) {
         scale_fill_simpsons()+
         xlab(paste("\n","symptoms")) + 
         ylab(paste("Propability"))+ 
-        ggtitle("test late after symptoms occur")
+        ggtitle("Test late after symptoms occur")
       
       
       ggplotly(barplot_comparison_late)
