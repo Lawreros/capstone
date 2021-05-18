@@ -5,10 +5,10 @@ account: lawreros
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 4139331
-bundleId: 4609263
+bundleId: 4609366
 url: https://lawreros.shinyapps.io/capstone/
-when: 1621290942.9454
-lastSyncTime: 1621290942.94541
+when: 1621293411.93313
+lastSyncTime: 1621293411.93314
 asMultiple: FALSE
 asStatic: FALSE
 ignoredFiles: 7di-rl-by-ags.csv
