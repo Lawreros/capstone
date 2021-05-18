@@ -1,6 +1,6 @@
 # Analysis of COVID-19 Cases in Calw, Germany
 
-## Link to Shiny App: [https://lawreros.shinyapps.io/capstone/](url)
+## [Link to Shiny App](https://lawreros.shinyapps.io/capstone/)
 ## Link to Video File: 
 
 ### Main Goal: 
@@ -43,6 +43,7 @@ Ran a multiple logistic regression model to model the odds of death given age ca
 
 
 ***Tab Symptoms - Descriptive analysis*** *(Alexandra Malinovska)*
+
 *Use: Compare symptoms distribution within different ages and test timing.*
 
 Conducted descriptive analyses of *Symptoms* using interactive pie-charts and bar-plots for total population and within different age categories and different test timings. 
@@ -52,13 +53,14 @@ Conducted descriptive analyses of *Symptoms* using interactive pie-charts and ba
 A Fisher test was used to compare distribution of symptoms among groups. Reference group for pairwise comparison and symptom can be chosen. p-value of Fisher test are displayed within a bar-plot. 
 
 ***Tab Symptoms - Descriptive analysis*** *(Alexandra Malinovska)*
+
 *Use: Compare observed and predicted probabilities of symptoms for different test timing.*
 
 An ordinal model on testing time using symptoms was fitted. Model estimates and Confidence intervals are reported. Observed and predicted probabilities are compared in bar-plots.
 
 #### Variables Used: 
 
-- *Reportdate*: Date on which the health department was notified about a participant test result - used for TimeTrend
+- *Report Date*: Date on which the health department was notified about a participant test result - used for TimeTrend
 
 - *Test Result*: Up to 3 test results were collected in SORMAS. For participants with more than 3 test, 4 least test was dropped. 
 
@@ -112,15 +114,15 @@ Required Libraries:
 
 
 #### Authors: 
-- Kate Kim, MPH Candidate '21, Johns Hopkins University, Bloomberg School of Public Health ([https://github.com/ks00jinkim](url))
-- Lauren Norris, MHS Candidate '21, Johns Hopkins University, Bloomberg School of Public Health ([https://github.com/ldnorris](url))
-- Alexandra Malinovska, MD, ScM Candidate, Department of Epidemiology, Johns Hopkins Bloomberg School of Public Health ([https://github.com/Alexa-Malina](url))
-- Ross Lawrence, BME MSE '21 Johns Hopkins University ([https://github.com/Lawreros](url))
+- Kate Kim, MPH Candidate '21, Johns Hopkins University, Bloomberg School of Public Health, [Github Page](https://github.com/ks00jinkim)
+- Lauren Norris, MHS Candidate '21, Johns Hopkins University, Bloomberg School of Public Health, [Github Page](https://github.com/ldnorris)
+- Alexandra Malinovska, MD, ScM Candidate, Department of Epidemiology, Johns Hopkins Bloomberg School of Public Health, [Github Page](https://github.com/Alexa-Malina)
+- Ross Lawrence, BME MSE '21 Johns Hopkins University, [Github Page](https://github.com/Lawreros)
 
-#### Acknowledgment
+#### Acknowledgment:
 We want to thank the health department Calw for providing this interesting and real-life data. We thank Dr. Frank Wiehe, first state official and Dr. Philip-Rene' Retzbach, legal counsel for their support. A special thank you to Iris Brilhaus, medical doctor in the Corona task force of the Calw district office, for the introduction into the data and health department processes and all fruitful discussions in her free time.
 
-#### **Disclaimer**
+#### **Disclaimer:**
 The following tool was developed for a class project. Please be aware that the predictions calculated by this tool rely solely on the available regressors and ***DO NOT NECESSARILY IMPLY CAUSATION*** by said regressors. The models are not validated and should not be used for any decision making. The data might differ from official records because a subset of participants were used.
 
 ---
@@ -131,14 +133,14 @@ The following tool was developed for a class project. Please be aware that the p
 
 Calw is a district, or *Landkreis* (in German), centrally located in Baden Wuerttemberg, Germany. The district is approximately 800 square kilometers, with approximately 160,000 people living in the 25 cities and municipalities of the district. These consist of 10 cities - Calw city, Altensteig, Bad Herrenalb, Bad Liebenzell, Bad Teinach-Zavelstein, Bad Wildbad, Haiterbach, Nagold, Neubulach and Wildberg - and 15 municipalities - Althengstett, Dobel, Ebhausen, Egenhausen, Enzkloesterle, Gechingen, Hoefen, Neuweiler, Oberreichenbach, Ostelsheim, Rohrdorf, Schoemberg, Simmersfeld, Simmozheim und Unterreichenbach.
 
-The Calw Health Department is part of the district office, which is on the one hand a municipal self-governing authority and on the other hand the lower state administrative authority with diverse tasks. For more information, please see the official homepage of the district office: [https://lra-calw.de](url). 
+The Calw Health Department is part of the district office, which is on the one hand a municipal self-governing authority and on the other hand the lower state administrative authority with diverse tasks. For more information, please see the [official homepage](https://www.kreis-calw.de/gesundheit-und-versorgung) of the district office. 
 
 Since the beginning of the COVID-19 pandemic, a completely new structure was set up within the health department. Depending on the incidence, up to 80 people were or are full-time and part-time employees coping with the pandemic. The military, *KSK Kommando Calw*, also supports the tracking of contact persons with up to 20 soldiers. At the beginning of the second wave, the Calw District Office decided to digitize processes and use the Sormas software (see *Data Source*). 
 
 ### Data Sources
 
 ### Calw Health Deparment Dataset 
-The data used here is data from SORMAS (Surveillance, Outbreak Response Management and Analysis System) used by the local health department of the district of Calw. SORMAS is an e-health software developed by the Helmholtz Center for Infection Research and the German Center for Infection Research for the management of measures to combat epidemics. With the support of the federal and state governments, the software is made available to the health authorities free of charge. The program is intended to enable data to be exchanged between the various bodies in the corona pandemic. It was implemented at the health department in Calw in October 2020 and full data set ares avaible starting from December 1st 2020. The health department is using SORMAS for contact tracking, case recording and outbreak management More information about SORMAS can be found on the official SORMAS homepage: [https://www.sormas-oegd.de/](url).
+The data used here is data from SORMAS (Surveillance, Outbreak Response Management and Analysis System) used by the local health department of the district of Calw. SORMAS is an e-health software developed by the Helmholtz Center for Infection Research and the German Center for Infection Research for the management of measures to combat epidemics. With the support of the federal and state governments, the software is made available to the health authorities free of charge. The program is intended to enable data to be exchanged between the various bodies in the corona pandemic. It was implemented at the health department in Calw in October 2020 and full data set ares avaible starting from December 1st 2020. The health department is using SORMAS for contact tracking, case recording and outbreak management More information about SORMAS can be found on the [official SORMAS homepage](https://www.sormas-oegd.de/).
 
 #### Data extraction and anonymization
 
