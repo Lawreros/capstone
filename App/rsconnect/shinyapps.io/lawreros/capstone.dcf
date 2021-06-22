@@ -1,0 +1,14 @@
+name: capstone
+title: capstone
+username:
+account: lawreros
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 4139331
+bundleId: 4609263
+url: https://lawreros.shinyapps.io/capstone/
+when: 1621290942.9454
+lastSyncTime: 1621290942.94541
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: 7di-rl-by-ags.csv

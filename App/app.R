@@ -10,6 +10,10 @@
 library(shiny)
 library(ggplot2)
 library(dplyr)
+library(tidyr)
+library(leaflet)
+library(geojsonR)
+library(shinythemes)
 library(sjPlot)
 library(sjmisc)
 library(sjlabelled)
@@ -17,50 +21,198 @@ library(ggmosaic)
 library(tidyverse)
 library(lubridate)
 library(ggrepel)
-library(sjPlot)
-library(sjmisc)
-library(sjlabelled)
 library(car)
 library(jtools)
-library(tidyverse)
 library(magrittr)
 library(lubridate)
 library(ggsci)
-library(ggrepel)
-library(MASS) 
 library(plotly)
+library(reshape2)
+library(corrr)
+library(MASS)
 library(knitr)
 
-
-ui<- fluidPage(
+ui<- fluidPage(theme = shinytheme('sandstone'),
     tabsetPanel(
-      tabPanel("Data Summary", fluid = TRUE,
+      # tabPanel("Data Summary", fluid = TRUE,
+      #          sidebarLayout(
+      #            sidebarPanel(
+      #              radioButtons('categories', label=h3("Select Data Feature"),
+      #                           choices = list('age','sex','variant','pregnant','quarantineExtended','reInfection','traveled','contactSourceCase',
+      #                                          'condition','sampleResult1','sampleResult2','symptoms.symptomatic', 'vaccination','vaccinationcomplete','vaccineManufacturer'),
+      #                           selected = 'age'),
+      #              
+      #              checkboxGroupInput("ages", label=h3("Reports by age over time"),
+      #                           choices = list('0-4','5-9','10-14','15-19','20-24','25-29','30-34','35-39','40-44','45-49','50-54',
+      #                                          '55-59','60-64','65-69','70-74','75-79','80-84','85-89','90-94','95-99','100-104'),
+      #                           selected = '0-4')
+      #            ),
+      #            mainPanel(
+      #              plotOutput('cattable'),
+      #              plotOutput('agetime')
+      #            )
+      #          )
+      # ),
+      
+      tabPanel("Overview", fluid = TRUE,
+               
+               mainPanel(
+                 tags$head(tags$style('h2 {color:red;}')),
+                 h2("Disclaimer"),
+                 p("The following tool was developed for a class project. 
+                   Please be aware that the predictions calculated by this tool rely soley on the available 
+                   regressors and DO NOT NECESSARILY IMPLY CAUSATION by said regressors. 
+                   The models are not validated and should not be used for any decision making.
+                   The data might differ from official records because a subset of participants were used."),
+                 br(),
+                 h3("The district of Calw"),
+                 h4("General information about the district"),
+                 p("Calw is a district (german <Landkreis>) centrally located in 
+                   Baden Wuerttemberg , Germany. The district is approximately 800 square kilometers, 
+                   with approximately 160.000 people living in the 25 cities and municipalities of the district.
+                   These consist of 10 cities - Calw city, Altensteig, Bad Herrenalb, Bad Liebenzell,
+                   Bad Teinach-Zavelstein, Bad Wildbad, Haiterbach, Nagold, Neubulach and Wildberg -
+                   and 15 municipalities - Althengstett, Dobel, Ebhausen, Egenhausen, Enzkloesterle, 
+                   Gechingen, Hoefen, Neuweiler, Oberreichenbach, Ostelsheim, Rohrdorf, Schoemberg,
+                   Simmersfeld, Simmozheim und Unterreichenbach."),
+                 h4("The health department"),
+                 p("The health department is part of the district office, which is on the one hand a
+                   municipal self-governing authority and on the other hand the lower 
+                   state administrative authority with diverse tasks. For more
+                   information please see the official homepage of the district office: lra-calw.de"),
+                 h4("The health department and the COVID-19 pandemic"),
+                 p("With the corona pandemic, a completely new structure was set up within the health department. 
+                   Depending on the incidence, up to 80 people were / are employed full-
+                   time and part-time coping with the pandemic. The military <KSK Kommando Calw> also supports the
+                   tracking of contact persons with up to 20 soldiers.
+                   Early on at the beginning of the second wave, the Calw District Office decided to digitize the
+                   processes and use the Sormas software (see data source)"),
+                 
+                 h3("The Data used in this App"),
+                 h4("Calw Data source"),
+                 p("The data used here is data from SORMAS (Surveillance, Outbreak Response Management and Analysis 
+                   System) used by the local health department of the district of Calw. 
+                   SORMAS is an e-health software developed by the Helmholtz Center for Infection Research 
+                   and the German Center for Infection Research for the management of measures to combat 
+                   epidemics. With the support of the federal and state governments, the software is 
+                   made available to the health authorities free of charge. The program is intended to enable
+                   data to be exchanged between the various bodies in the corona pandemic.
+                   It was implemented at the health department in Calw in October 2020 and full data set ares 
+                   avaible starting from December 1st 2020. The health department is using SORMAS for 
+                   contact tracking, case recording and outbreak management
+                   More information about SORMAS can be found on the official SORMAS 
+                   homepage: https://www.sormas-oegd.de/"),
+                 h4("Data extraction and annoymisation"),
+                 p(" Case recording data was extraction and anonymized by Iris Brilhaus, MD in the Corona
+                   task force of district office Calw. 
+                   Initial data extraction was performed on April 21st 2021 and was repeated on May 13th 2021."),
+                 h4("Data cleaning and translation"),
+                 p("Data cleaning and translation in English was performed by Alexandra Malinovska.
+                   Only the cleaned and translated data is available here. The data set might be different from 
+                   official records, because some participants with missing data were excluded. Missing data
+                   could be attributed 
+                   to missing laboratory test, which were captured with a different software. Since analysis 
+                   should include only patients with a recorded positive laboratory test, only these 
+                   participants are contained in the data set. 
+                   Questions about data cleaning and translation can be directed to her."),
+                 h4("Data dictionary"),
+                 p("The data dictionary can be found in the Readme file of this App on Github."),
+                 h4('German Heatmap Dataset'),
+                 p('The data used in the creation of the interactive heatmap comes from aggregated data
+                  collected by the Robert Koch Institute and compiled online in an open-access github repository found
+                  here: (https://github.com/jgehrcke/covid-19-germany-gae). The aggregate case and death numbers, along with
+                  the total population inside of each district were collected from the most current files as of
+                  05/15/2021.'),
+                 h3("Acknowledgment"),
+                 p(" We want to thank the health department Calw for providing this interesting and real-life 
+                   data. We thank Dr. Frank Wiehe, first state official and Dr. Philip-Rene' Retzbach, legal 
+                   counsel for their support. 
+                   A special thank you to Iris Brilhaus for the introduction into the data and 
+                   health department processes and all fruitful discussions in her free time. "),
+                 h3("Maintenance"),
+                 p(" The last data extraction was performed on May 13, 2021, further data updates and 
+                   maintenance of the app will be discussed with the health department Calw")
+                 )
+               
+            ),
+      
+      tabPanel("COVID-19 Time Trend in Calw", fluid = TRUE,
                sidebarLayout(
                  sidebarPanel(
-                   radioButtons('categories', label=h3("Select Data Feature"),
-                                choices = list('age','sex','variant','pregnant','quarantineExtended','reInfection','traveled','contactSourceCase',
-                                               'condition','sampleResult1','sampleResult2','symptoms.symptomatic', 'vaccination','vaccinationcomplete','vaccineManufacturer'),
-                                selected = 'age'),
-                   
-                   checkboxGroupInput("ages", label=h3("Reports by age over time"),
-                                choices = list('0-4','5-9','10-14','15-19','20-24','25-29','30-34','35-39','40-44','45-49','50-54',
-                                               '55-59','60-64','65-69','70-74','75-79','80-84','85-89','90-94','95-99','100-104'),
-                                selected = '0-4')
+                   h3('Select Age Category:'),
+                   checkboxGroupInput("agetimeln", label="Five Year Bins:",
+                                      choices = list('0-4','5-9','10-14','15-19','20-24','25-29','30-34','35-39','40-44','45-49','50-54',
+                                                     '55-59','60-64','65-69','70-74','75-79','80-84','85-89','90-94','95-99','100-104'),
+                                      selected = '0-4'
+                   ),
+                   checkboxGroupInput("agewideln", label="Twenty Year Bins:",
+                                      choices = list('0-19','20-39','40-59','60-79','80+'),
+                                      selected = '0-19'
+                   )
                  ),
                  mainPanel(
-                   plotOutput('cattable'),
-                   plotOutput('agetime')
+                   h3('Calw COVID-19 Cases by Age Time Trend: December 2020 - May 2021'),
+                   #h4('Total Cases Over Time:'),
+                   plotOutput('timetrend3'),
+                   h4('Five Year Age Bins:'),
+                   plotOutput('timetrend'),
+                   h4('Twenty Year Age Bins:'),
+                   plotOutput('timetrend2')
+                 )
+               )
+               
+      ),
+      
+      tabPanel("Covid Impact in Germany", fluid = TRUE,
+               sidebarLayout(
+                 sidebarPanel(
+                   h3('Select Interactive Map and Plot Parameters'),
+                   sliderInput("map_date",
+                               "Interactive Heatmap Date:",
+                               min = as.Date("2020-03-04","%Y-%m-%d"),
+                               max = as.Date("2021-05-11","%Y-%m-%d"),
+                               value=as.Date("2020-08-11"),
+                               timeFormat="%Y-%m-%d"),
+                   radioButtons("per_k", label = h4("Scale Data"),
+                                choices = list("New Occurances (with Local Polynomial Regression curve)"=0,"Cumulative" = -1,"Rate Per Person"=1, "Cumulative Per 1000 people" = 1000),
+                                selected = 1),
+                   radioButtons("radio", label = h4("Heatmap: Display Number of Cases or Deaths"),
+                                choices = list("Case" = 'cases', "Dead" = 'deaths'), 
+                                selected = 'cases'),
+                   dateRangeInput('plot_range', label=h4('Plot Time Window'), 
+                                  start = "2020-03-04", end = "2021-05-11", 
+                                  min = "2020-03-04", max = "2021-05-11", 
+                                  format = "yyyy-mm-dd", 
+                                  startview = "month",language = "en", separator = " to "),
+                   checkboxGroupInput('plot_cat', label=h4('Plot Number of Cases and/or Deaths'),
+                                 choices = list('Case'='cases', 'Dead'='deaths'),
+                                 selected='cases'),
+                   p(strong("Reset Selected Districts in Plot")),
+                   actionButton("reset", label = "Reset")
+                 ),
+                 mainPanel(
+                   h3("Interactive Covid Map for Germany (click on Districts to plot timeseries)"), 
+                   leafletOutput('covid_map'),
+                   #textOutput('testthis'),
+                   plotlyOutput('countytime')
                  )
                )
       ),
       
       
-      tabPanel("B", fluid = TRUE,
-               sidebarLayout(
-                 sidebarPanel(),
-                 mainPanel()
-               )
-      ),
+      # tabPanel("B", fluid = TRUE,
+      #          sidebarLayout(
+      #            sidebarPanel(
+      #              radioButtons("radio2", label = h3("Radio buttons"),
+      #                           choices = list("Case" = 'cases', "Dead" = 'deaths'), 
+      #                           selected = 'cases')
+      #            ),
+      #            mainPanel(
+      #              leafletOutput('corr_map'),
+      #              textOutput('testth')
+      #            )
+      #          )
+      # ),
       
       
   
@@ -69,7 +221,7 @@ ui<- fluidPage(
                
                sidebarLayout(
                  sidebarPanel(p(em("How to use: Select criteria for variables and click on respective tab to view results.")),
-                              h4("Select by:"),
+                              h3("Select by:"),
                               checkboxGroupInput("ages2", label=h4("Age Group"),
                                                  choices = list("0-19" = "0-19","20-39" = "20-39","40-59" = "40-59","60-79" = "60-79","80+" = "80+"),
                                                  selected = '0-19'),
@@ -107,20 +259,26 @@ ui<- fluidPage(
                sidebarLayout(
                  sidebarPanel(p(em("How to use: Select criteria for variables below to view results.")),
                               h3("Select Features:"),
-                              selectInput("ages3", label=h3("Age Category"),
+                              selectInput("ages3", label="Age Category",
                               choices = list("0-19" = "0-19","20-39" = "20-39","40-59" = "40-59","60-79" = "60-79","80+" = "80+"),
                                selected = "0-19"),
-                              selectInput("traveled3", label=h3("Previous Travel"),
+                              selectInput("traveled3", label="Previous Travel",
                                choices = list("yes", "no"),
                                selected = "yes"),
-                              selectInput("contact3", label=h3("Known Contact"),
+                              selectInput("contact3", label="Known Contact",
                                choices = list("yes", "no","unknown"),
                                selected = "yes")
                  ),
-                 mainPanel(h4("Expected Delayed Testing"),
+                 mainPanel(h3("Expected Delayed Testing"),
                            h4("Calculator"),
                            h5("Expected number of days after symptoms onset individual takes COVID-19 test"),
                            textOutput('linreg'),
+                           tags$head(tags$style("#linreg{color: red;
+                                 font-size: 20px;
+                                                font-style: italic;
+                                                }"
+                          )
+                           ),
                            br(),
                            br(),
                            h4("Multiple Linear Regression Model"),
@@ -145,7 +303,7 @@ ui<- fluidPage(
     
         
        tabPanel("Death, Age, Sex Association", fluid = TRUE,
-               headerPanel("Association between Sex, Age and Condition (Alive/Dead)"),
+               #headerPanel("Association between Sex, Age and Condition (Alive/Dead)"),
                sidebarLayout(
                  sidebarPanel(h3('Summary of Analysis:'),
                               h5('In this tab, we evaluate the association between sex, age-category, and condition.'),
@@ -153,16 +311,16 @@ ui<- fluidPage(
                               h5('Persons with unknown or missing sex, age, or condition were excluded from analysis.'),
                               h5('Chi-square tests were used to test for significant associations.')
                    ),
-                 mainPanel(h1("Association Results:"),
-                           h2('Sex Results'),
-                           h3('Chi-square Test:Sex and Condition'),
-                           h4('A chi-square test indicates condition is not significantly associated with sex (p = 0.09.)'),
+                 mainPanel(h3("Association between Sex, Age and Condition (Alive/Dead)"),
+                           h4('Sex Results:'),
+                           h5('Chi-square Test:Sex and Condition'),
+                           h5('A chi-square test indicates condition is not significantly associated with sex (p = 0.09.)'),
                       textOutput('chisq'),
                       h3('Mosaic Plot: Sex'),
                       plotlyOutput('sexmosaic'),
-                 h2("Age Category Results"),
-                      h3('Chi-Square Test: Age and Condition'),
-                      h4('A chi-square test indicates condition is significantly associated with age (p<0.001).'),
+                 h4("Age Category Results:"),
+                      h5('Chi-Square Test: Age and Condition'),
+                      h5('A chi-square test indicates condition is significantly associated with age (p<0.001).'),
                       textOutput('chisqage'),
                       h3('Mosaic Plot: Age Category'),
                       plotlyOutput('agemosaic')
@@ -184,19 +342,25 @@ ui<- fluidPage(
                                 choices = list('0-19','20-39','40-59','60-79','80+'),
                                 selected = '0-19')
                    ),
-                 mainPanel(h2('Odds of Death Given Sex and Age'),
-                           h4('Outcome = Death'),
-                           h4('Predictors = Age-Category and Sex'),
-                           h5('Codebook:'),
+                 mainPanel(h3('Odds of Death Given Sex and Age'),
+                           h5('Given your selected age category and sex, your percent chance of death is:'),
+                           textOutput('predict'),
+                           tags$head(tags$style("#predict{color: red;
+                                 font-size: 20px;
+                                                font-style: italic;
+                                                }"
+                          )
+                           ),
+                           h4('Codebook:'),
+                           h5('Outcome = Death'),
+                           h5('Predictors = Age-Category and Sex'),
                            h5('Males = reference; Age Category 0-19 = reference'),
                            htmlOutput('logvar'),
                            h3('Odds Ratio Interpretations:'),
                            h5('The odds of death for females is 0.42 times the odds of death for males, or significantly lower by 58% (p<0.001).'),
                            h5('The odds of death increases with each increasing age category and is highest in adults over 80 years old. The odds of death in adults over 80 years old is 117.51 times the odds of death in children 0-19 years old (p<0.001).'),
                            h3('Predicted Probability of Death Given Inputs (Age Category and Sex):'),
-                           h5('Chance of death was calculated by converting predicted log odds of death into predicted probability of death. Predicted probabilities were transformed into percentages by multiplying by 100.'),
-                           h5('Given your selected age category and sex, your percent chance of death is:'),
-                           textOutput('predict')
+                           h5('Chance of death was calculated by converting predicted log odds of death into predicted probability of death. Predicted probabilities were transformed into percentages by multiplying by 100.')
                           
                            )
                  
@@ -210,7 +374,7 @@ ui<- fluidPage(
                #h3("Symptom Distribution by Age"),
                fluidRow(
                  column(4,
-                        h4("Symptom Distribution in Total Group"),
+                        h3("Symptom Distribution in Total Group"),
                         plotlyOutput("pieallAM"),
                        
                         
@@ -332,84 +496,8 @@ ui<- fluidPage(
                          ),
                )
       )))),
-
-      tabPanel("Readme File ", fluid = TRUE,
-               
-               mainPanel(
-                 h3("Disclaimer"),
-                 p("The following tool was developed for a class project. 
-                 Please be aware that the predictions calculated by this tool rely soley on the available 
-                regressors and DO NOT NECESSARILY IMPLY CAUSATION by said regressors. 
-                 The models are not validated and should not be used for any decision making.
-                 The data might differ from official records because a subset of participants were used."),
-                 br(),
-                 h3("The district of Calw"),
-                 h4("General information about the district"),
-                 p("Calw is a district (german <Landkreis>) centrally located in 
-                   Baden Wuerttemberg , Germany. The district is approximately 800 square kilometers, 
-                   with approximately 160.000 people living in the 25 cities and municipalities of the district.
-                  These consist of 10 cities - Calw city, Altensteig, Bad Herrenalb, Bad Liebenzell,
-                   Bad Teinach-Zavelstein, Bad Wildbad, Haiterbach, Nagold, Neubulach and Wildberg -
-                   and 15 municipalities - Althengstett, Dobel, Ebhausen, Egenhausen, Enzkloesterle, 
-                   Gechingen, Hoefen, Neuweiler, Oberreichenbach, Ostelsheim, Rohrdorf, Schoemberg,
-                   Simmersfeld, Simmozheim und Unterreichenbach."),
-                 h4("The health department"),
-                 p("The health department is part of the district office, which is on the one hand a
-                  municipal self-governing authority and on the other hand the lower 
-                 state administrative authority with diverse tasks. For more
-                 information please see the official homepage of the district office: lra-calw.de"),
-                 h4("The health department and the COVID-19 pandemic"),
-                 p("With the corona pandemic, a completely new structure was set up within the health department. 
-                 Depending on the incidence, up to 80 people were / are employed full-
-                 time and part-time coping with the pandemic. The military <KSK Kommando Calw> also supports the
-                 tracking of contact persons with up to 20 soldiers.
-                 Early on at the beginning of the second wave, the Calw District Office decided to digitize the
-                 processes and use the Sormas software (see data source)"),
-                 
-                 h3("The Data used in this App"),
-                 h4("Data source"),
-                 p("The data used here is data from SORMAS (Surveillance, Outbreak Response Management and Analysis 
-                 System) used by the local health department of the district of Calw. 
-                 SORMAS is an e-health software developed by the Helmholtz Center for Infection Research 
-                 and the German Center for Infection Research for the management of measures to combat 
-                 epidemics. With the support of the federal and state governments, the software is 
-                 made available to the health authorities free of charge. The program is intended to enable
-                 data to be exchanged between the various bodies in the corona pandemic.
-                 It was implemented at the health department in Calw in October 2020 and full data set ares 
-                avaible starting from December 1st 2020. The health department is using SORMAS for 
-                contact tracking, case recording and outbreak management
-                 More information about SORMAS can be found on the official SORMAS 
-                 homepage: https://www.sormas-oegd.de/"),
-                 h4("Data extraction and annoymisation"),
-                 p(" Case recording data was extraction and anonymized by Iris Brilhaus, MD in the Corona
-                 task force of district office Calw. 
-                 Initial data extraction was performed on April 21st 2021 and was repeated on May 13th 2021."),
-                 h4("Data cleaning and translation"),
-                 p("Data cleaning and translation in English was performed by Alexandra Malinovska.
-                 Only the cleaned and translated data is available here. The data set might be different from 
-                  official records, because some participants with missing data were excluded. Missing data
-                  could be attributed 
-                   to missing laboratory test, which were captured with a different software. Since analysis 
-                    should include only patients with a recorded positive laboratory test, only these 
-                    participants are contained in the data set. 
-                   Questions about data cleaning and translation can be directed to her."),
-                 h4("Data dictionary"),
-                 p("The data dictionary can be found in the Readme file of this App on Github."),
-                 h3("Acknowledgment"),
-                 p(" We want to thank the health department Calw for providing this interesting and real-life 
-                 data. We thank Dr. Frank Wiehe, first state official and Dr. Philip-Rene' Retzbach, legal 
-                counsel for their support. 
-                 A special thank you to Iris Brilhaus for the introduction into the data and 
-                 health department processes and all fruitful discussions in her free time. "),
-                 h3("Maintenance"),
-                 p(" The last data extraction was performed on May 13, 2021, further data updates and 
-                  maintenance of the app will be discussed with the health department Calw")
-               )
-               
-      ),
       
       
-
       tabPanel("Symptoms - Ordinal Regression on testing time", fluid = TRUE,
                h3( "Ordinal Regression on testing time using symptoms"),
                p("After the descriptive analysis, we wanted to fit a model to try to answer:
@@ -428,49 +516,12 @@ ui<- fluidPage(
                    plotlyOutput("OMplotLateAM"))),
                 h3( "Model's Estimate including 95% CI"), 
                tableOutput("ordinalmodelAM")
-               
-                 
-               ),
+               )
     
       
 
         
-         tabPanel("Time Trend", fluid = TRUE,
-               sidebarLayout(
-                 sidebarPanel(
-                   h3('Select Age Category:'),
-                   checkboxGroupInput("agetimeln", label=h3("Five Year Bins:"),
-                                      choices = list('0-4','5-9','10-14','15-19','20-24','25-29','30-34','35-39','40-44','45-49','50-54',
-                                                     '55-59','60-64','65-69','70-74','75-79','80-84','85-89','90-94','95-99','100-104'),
-                                      selected = '0-4'
-                                      ),
-                   checkboxGroupInput("agewideln", label=h3("Twenty Year Bins:"),
-                                      choices = list('0-19','20-39','40-59','60-79','80+'),
-                                      selected = '0-19'
-                   )
-                 ),
-                 mainPanel(
-                   h2('COVID-19 Cases by Age Time Trend: December 2020 - May 2021'),
-                        h3('Total Cases Over Time:'),
-                   plotOutput('timetrend3'),
-                   h3('Five Year Age Bins:'),
-                   plotOutput('timetrend'),
-                   h3('Twenty Year Age Bins:'),
-                   plotOutput('timetrend2')
-                 )
-               )
-      ),
-      
-   
-      
-      tabPanel("J", fluid = TRUE,
-               sidebarLayout(
-                 sidebarPanel(),
-                 mainPanel()
-               )
-      )
-  
-  ))
+         ))
 
   
 
@@ -478,43 +529,190 @@ ui<- fluidPage(
 # Define server logic required to draw a histogram
 server <- function(input, output) {
     #Load in data as a dataframe called CalwData
-
-  
-  
-  
     load('CalwData.RData')
+
     #Convert reportDate from string to actual date factor
     #CalwData$reportDate <- as.Date(CalwData$reportDate, "%Y-%m-%d")
-  CalwData %<>%
-    mutate(
-      testingdelay= ymd(indexcase)- symptoms.onsetDate,
-      reportingdelay = reportDate - ymd(indexcase),
-      orderdelay= qOrderDate - reportDate,
-      symptomaticTest=if_else(symptoms.onsetDate>indexcase, "no", "yes"),
-      symptomaticatanytime = if_else(is.na(symptoms.onsetDate), "no", "yes")
-    ) 
 
 
     #### Tab "Data Summary"
     
     #Plot the number of times different entries for categories appear in the data (for seeing what has enough entries to bother with)
-    output$cattable <- renderPlot({
-      x <- as.data.frame(table(CalwData[[input$categories]]))
-      ggplot(x, aes(x=Var1, y=Freq)) + geom_bar(stat='identity')
-    })
-    
-    #Plot the number of reports for each age each day
-    output$agetime <- renderPlot({
-      ggplot(CalwData[CalwData$age %in% input$ages,], aes(reportDate, fill = age))+geom_histogram(bins=70) + scale_x_date()
-    })
-    
-    ####
-    
-    
-    
-    #### Tab B
+    # output$cattable <- renderPlot({
+    #   x <- as.data.frame(table(CalwData[[input$categories]]))
+    #   ggplot(x, aes(x=Var1, y=Freq)) + geom_bar(stat='identity')
+    # })
+    # 
+    # #Plot the number of reports for each age each day
+    # output$agetime <- renderPlot({
+    #   ggplot(CalwData[CalwData$age %in% input$ages,], aes(reportDate, fill = age))+geom_histogram(bins=70) + scale_x_date()
+    # })
     
     ####
+    
+    
+    #### Tab A
+    
+    pal <- colorNumeric("plasma", NULL)
+    nycounties <- rgdal::readOGR("DE-counties.geojson")
+    
+    c_dat <- read.csv('cases-rki-by-ags.csv')
+    c_dat <- c_dat %>% rename(sum = sum_cases)
+    c_dat$category <- 'cases'
+    d_dat <- read.csv('deaths-rki-by-ags.csv')
+    d_dat$category <- 'deaths'
+    d_dat <- d_dat %>% rename(sum = sum_deaths)
+    
+    m_dat <- rbind(c_dat,d_dat)
+    m_dat <- m_dat[,c(1:325,414,338:413,415,416)]
+    rm(c_dat,d_dat)
+    
+    m_dat$time_iso8601 <- as.Date(m_dat$time_iso8601,"%Y-%m-%dT")
+    new_name <- paste0(make.names(nycounties@data$GEN), "_", make.names(nycounties@data$BEZ), "")
+    new_name <- append('time', c(new_name[1:401],'germany','category'))
+    colnames(m_dat) <- new_name
+    dat <- m_dat
+    
+    #Load population information
+    popu <- read.csv('latest-aggregate.csv')
+    popu <- popu[c(1:325,338:412),4]
+    popu <- append(popu,sum(popu))
+    
+    
+    output$covid_map <- renderLeaflet({
+      
+      if(input$per_k > 0){
+        popul <- popu/as.integer(input$per_k)
+        dat <-m_dat
+        dat[colnames(dat[,-c(1,403,404)])]<-sweep(dat[colnames(dat[,-c(1,403,404)])],2,popul,FUN = '/')
+      }else if (input$per_k == 0){
+        dat <-m_dat
+        dat[-NROW(dat),colnames(dat[,-c(1,403,404)])] <- data.frame(diff(as.matrix(dat[colnames(dat[,-c(1,403,404)])])))
+      }else{
+        dat<-m_dat
+      }
+      
+      
+      leaflet(nycounties)%>%
+                          addTiles()%>%
+                          addPolygons(stroke = FALSE, smoothFactor = 0.3, fillOpacity = 0.6,
+                              fillColor = pal(unlist(with(dat,dat[(dat$time == input$map_date & dat$category == input$radio),-c(1,403,404)]),use.names = FALSE)),
+                              # Highlight upon mouseover
+                              highlight = highlightOptions(
+                              weight = 30,
+                              fillOpacity = 0.9,
+                              color = "red",
+                              opacity = 0.1,
+                              bringToFront = TRUE),
+                              #sendToBack = TRUE), 
+                              
+                              label = ~paste0(GEN, ": ", formatC(unlist(with(dat,dat[(dat$time == input$map_date & dat$category == input$radio),-c(1,403,404)])), big.mark = ",")),
+                                    layerId = seq.int(2,403)) %>%
+                              addLegend(pal = pal, title=input$radio,
+                                    values = with(dat,dat[(dat$time == input$map_date & dat$category == input$radio),-c(1,403,404)]),
+                                    opacity = 1.0) %>%
+                              addMarkers(8.7472, 48.7122, popup ="Calw", label = "Calw")
+    })
+    
+    
+    clicks = reactiveValues(Clicks=c())
+    
+    observeEvent(input$reset, {
+      clicks$Clicks <- NULL
+    })
+    
+    observeEvent(input$covid_map_shape_click, { # update the location selectInput on map clicks
+      p <- input$covid_map_shape_click
+      #output$testthis <- renderText(clicks$Clicks)
+      clicks$Clicks<-c(clicks$Clicks,p$id)
+      
+      output$countytime <- renderPlotly({
+        if(is.null(clicks$Clicks)==FALSE){
+        
+        if(input$per_k > 0){
+          popul <- popu/as.integer(input$per_k)
+          dat <-with(m_dat,m_dat[(m_dat$category %in% input$plot_cat & m_dat$time %in%seq(as.Date(input$plot_range[1]), as.Date(input$plot_range[2]), "days")),])
+          dat[colnames(dat[,-c(1,403,404)])]<-sweep(dat[colnames(dat[,-c(1,403,404)])],2,popul,FUN = '/')
+          dat<-reshape2::melt(dat[,c('time','category',new_name[clicks$Clicks])], id=c('time','category'))
+          dat$variable <- as.character(dat$variable)
+          dat <- tidyr::unite(dat,"District",variable,category,remove = F, sep=' ')
+          
+          ggplot(dat,aes(time, value , colour = District)) + 
+          geom_point()+
+          geom_vline(xintercept = input$map_date, linetype="dotted", size=2)
+        }else if (input$per_k == 0){
+          dat <-m_dat
+          dat[-NROW(dat),colnames(dat[,-c(1,403,404)])] <- data.frame(diff(as.matrix(dat[colnames(dat[,-c(1,403,404)])])))
+          dat <-with(dat,dat[(dat$category %in% input$plot_cat & dat$time %in%seq(as.Date(input$plot_range[1]), as.Date(input$plot_range[2]), "days")),])
+          dat<-reshape2::melt(dat[,c('time','category',new_name[clicks$Clicks])], id=c('time','category'))
+          dat$variable <- as.character(dat$variable)
+          dat <- tidyr::unite(dat,"District",variable,category,remove = F, sep=' ')
+          
+          ggplot(dat, aes(time, value, colour = District)) + 
+            geom_point(alpha=0.3)+
+            geom_smooth(method = "loess", size = 1.5)+
+            geom_vline(xintercept = input$map_date, linetype="dotted", size=2)
+        }else{
+          dat <-with(m_dat,m_dat[(m_dat$category %in% input$plot_cat & m_dat$time %in%seq(as.Date(input$plot_range[1]), as.Date(input$plot_range[2]), "days")),])
+          dat<-reshape2::melt(dat[,c('time','category',new_name[clicks$Clicks])], id=c('time','category'))
+          dat$variable <- as.character(dat$variable)
+          dat <- tidyr::unite(dat,"District",variable,category,remove = F, sep=' ')
+          
+          ggplot(dat, aes(time, value, colour = District)) + 
+            geom_point()+
+            geom_vline(xintercept = input$map_date, linetype="dotted", size=2)
+        }
+        }
+      })
+      
+    })
+    ###############################
+    # 
+    # p_corr = reactiveValues(id=2)
+    # observeEvent(input$corr_map_shape_click, { # update the location selectInput on map clicks
+    #   tmp <- input$corr_map_shape_click
+    #   p_corr$id <- tmp$id
+    #   })
+    # 
+    #   output$corr_map <- renderLeaflet({
+    #   output$testth <- renderText(p_corr$id)
+    #   popul <- popu
+    #   dat <-m_dat
+    #   dat[-NROW(dat),colnames(dat[,-c(1,403,404)])] <- data.frame(diff(as.matrix(dat[colnames(dat[,-c(1,403,404)])])))
+    #   corr_dat<-as.data.frame(correlate(with(dat,dat[(dat$category==input$radio2),-c(1,403,404)])))
+    #   corr_dat[is.na(corr_dat)]<-1
+    #   
+    #   
+    #   leaflet(nycounties)%>%
+    #     addTiles()%>%
+    #     addPolygons(stroke = FALSE, smoothFactor = 0.3, fillOpacity = 0.7,
+    #                 fillColor = pal(unlist(corr_dat[p_corr$id,-1],use.names = FALSE)),
+    #                 # Highlight upon mouseover
+    #                 highlight = highlightOptions(
+    #                   weight = 30,
+    #                   fillOpacity = 0.9,
+    #                   color = "red",
+    #                   opacity = 0.1,
+    #                   bringToFront = TRUE),
+    #                 #sendToBack = TRUE), 
+    #                 
+    #                 label = ~paste0(GEN, ": ", formatC(unlist(corr_dat[p_corr$id,-1]), big.mark = ",")),layerId = seq.int(2,403)) %>%
+    #     addLegend(pal = pal, title=paste('New ',input$radio2,sep=' '),values = corr_dat[p_corr$id,-1], opacity = 1.0) %>%
+    #     addMarkers(8.7, 48.6, popup ="Calw", label = "Calw")
+    # })
+    # 
+    # 
+    ####
+    
+    CalwData %<>%
+      mutate(
+        testingdelay= ymd(indexcase)- symptoms.onsetDate,
+        reportingdelay = reportDate - ymd(indexcase),
+        orderdelay= qOrderDate - reportDate,
+        symptomaticTest=if_else(symptoms.onsetDate>indexcase, "no", "yes"),
+        symptomaticatanytime = if_else(is.na(symptoms.onsetDate), "no", "yes")
+      ) 
+    
     
     #### Tab "Delayed Testing - Descriptive" 
     
@@ -1072,7 +1270,7 @@ server <- function(input, output) {
       
     })
     
-    output$predict <- renderPrint({
+    output$predict <- renderText({
       CalwData2 <- CalwData %>%
         mutate(Age_Cat = ifelse(age == '0-4' | age == '5-9' | age == '10-14' | age == '15-19', 0,
                                 ifelse(age == '20-24' | age == '25-29' | age == '30-34' | age == '35-39', 1,
@@ -1094,9 +1292,9 @@ server <- function(input, output) {
           
       prob <- predict(mylogit, newdata, type="response")
       
-       percent <- prob*100
+       percent <- prob[1]*100
        percent
-       percent %>% as.numeric() 
+       percent[1] %>% as.numeric() 
     })
     
     
@@ -1529,7 +1727,7 @@ server <- function(input, output) {
       scale_fill_simpsons()+
       xlab(paste("\n","symptoms")) + 
       ylab(paste("Propability"))+ 
-      ggtitle("test before symptoms occur")
+      ggtitle("Test before symptoms occur")
     
     
     ggplotly(barplot_comparison_before)
@@ -1598,7 +1796,7 @@ server <- function(input, output) {
         scale_fill_simpsons()+
         xlab(paste("\n","symptoms")) + 
         ylab(paste("Propability"))+ 
-        ggtitle("test immediately when symptoms occur")
+        ggtitle("Test immediately when symptoms occur")
       
       ggplotly(bbarplot_comparison_immediate)
       
@@ -1666,7 +1864,7 @@ server <- function(input, output) {
         scale_fill_simpsons()+
         xlab(paste("\n","symptoms")) + 
         ylab(paste("Propability"))+ 
-        ggtitle("test early after symptoms occur")
+        ggtitle("Test early after symptoms occur")
       
       
       ggplotly(barplot_comparison_early)
@@ -1734,7 +1932,7 @@ server <- function(input, output) {
         scale_fill_simpsons()+
         xlab(paste("\n","symptoms")) + 
         ylab(paste("Propability"))+ 
-        ggtitle("test late after symptoms occur")
+        ggtitle("Test late after symptoms occur")
       
       
       ggplotly(barplot_comparison_late)
